@@ -11,15 +11,17 @@ const Game = {
     items: new Set(),
     scene: 'intro',
     startTime: 0,
-    deaths: 0
+    deaths: 0,
+    visited: new Set()
   },
 
   els: {},
+  timers: [],
 
   init() {
     this.cacheEls();
     this.bindEvents();
-    this.loadProgress();
+    this.checkAutosave();
   },
 
   cacheEls() {
@@ -48,20 +50,20 @@ const Game = {
   },
 
   bindEvents() {
-    document.getElementById('start-btn').onclick = () => this.startNameInput();
-    document.getElementById('fullscreen-btn').onclick = () => this.toggleFullscreen();
-    document.getElementById('name-btn').onclick = () => this.confirmName();
+    const $ = id => document.getElementById(id);
+    $('start-btn').onclick = () => this.startNameInput();
+    $('fullscreen-btn').onclick = () => this.toggleFullscreen();
+    $('name-btn').onclick = () => this.confirmName();
     this.els.nameInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') this.confirmName();
     });
-    document.getElementById('retry-btn').onclick = () => this.restart();
-    document.getElementById('restart-btn').onclick = () => this.restart();
-    document.getElementById('resume-btn').onclick = () => this.togglePause();
-    document.getElementById('save-btn').onclick = () => { this.saveProgress(); UI.notify('Сохранено', 'Прогресс сохранён.'); };
-    document.getElementById('load-btn').onclick = () => { this.loadProgress(true); };
-    document.getElementById('quit-btn').onclick = () => this.restart();
+    $('retry-btn').onclick = () => this.restart();
+    $('restart-btn').onclick = () => this.restart();
+    $('resume-btn').onclick = () => this.togglePause();
+    $('save-btn').onclick = () => { this.saveProgress(); UI.notify('💾 Сохранено', 'Прогресс сохранён.'); };
+    $('load-btn').onclick = () => { this.loadProgress(true); };
+    $('quit-btn').onclick = () => this.restart();
 
-    // ESC — пауза
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && this.els.gameScreen.classList.contains('active')) {
         this.togglePause();
@@ -72,14 +74,23 @@ const Game = {
       }
     });
 
-    // Курсор-кровь
     document.addEventListener('mousemove', e => {
       const cursor = document.getElementById('blood-cursor');
-      cursor.style.left = e.clientX + 'px';
-      cursor.style.top = e.clientY + 'px';
+      if (cursor) {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+      }
     });
 
-    // Клик — звук
+    document.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      const cursor = document.getElementById('blood-cursor');
+      if (cursor && t) {
+        cursor.style.left = t.clientX + 'px';
+        cursor.style.top = t.clientY + 'px';
+      }
+    }, { passive: true });
+
     document.addEventListener('click', () => {
       if (Audio.ctx) Audio.playClick();
     });
@@ -89,6 +100,9 @@ const Game = {
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
+        if (screen.orientation && screen.orientation.lock) {
+          try { await screen.orientation.lock('portrait'); } catch(e){}
+        }
       } else {
         await document.exitFullscreen();
       }
@@ -99,6 +113,7 @@ const Game = {
 
   startNameInput() {
     Audio.init();
+    Audio.resume();
     Audio.startAmbient();
     this.els.startScreen.classList.remove('active');
     this.els.nameScreen.classList.add('active');
@@ -117,35 +132,39 @@ const Game = {
   },
 
   startTimer() {
-    setInterval(() => {
+    const t = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
       const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
       const s = String(elapsed % 60).padStart(2, '0');
       this.els.timer.textContent = `⏱ ${m}:${s}`;
-      // Падение рассудка
-      if (elapsed > 0 && elapsed % 30 === 0) {
-        this.adjustSanity(-2);
+      if (elapsed > 0 && elapsed % 45 === 0) {
+        this.adjustSanity(-1);
       }
     }, 1000);
+    this.timers.push(t);
   },
 
   startRandomEvents() {
-    setInterval(() => {
+    const t = setInterval(() => {
       if (!this.els.gameScreen.classList.contains('active')) return;
+      if (this.els.pauseMenu.classList.contains('hidden') === false) return;
       const r = Math.random();
-      if (r < 0.1) {
+      if (r < 0.10) {
         Effects.shadowPass();
         Audio.playWhisper();
-      } else if (r < 0.15) {
+      } else if (r < 0.16) {
         Effects.silhouette();
-      } else if (r < 0.18) {
+      } else if (r < 0.19) {
         Effects.bloodRain();
-      } else if (r < 0.2) {
-        UI.fakeNotification();
       } else if (r < 0.22) {
+        UI.fakeNotification();
+      } else if (r < 0.25) {
         Audio.playHeartbeat();
+      } else if (r < 0.27) {
+        Audio.playCreak();
       }
-    }, 12000);
+    }, 11000);
+    this.timers.push(t);
   },
 
   addKey() {
@@ -161,7 +180,7 @@ const Game = {
             onChoose: () => {
               this.state.keys++;
               this.els.keysCount.textContent = this.state.keys;
-              Screamer.show(1800);
+              Screamer.girl(1800);
               Audio.playWhisper();
             } }
         ]
@@ -179,10 +198,8 @@ const Game = {
 
   itemName(item) {
     const names = {
-      flashlight: 'Фонарик',
-      mirror: 'Зеркало',
-      note: 'Записка',
-      bone: 'Кость',
+      flashlight: 'Фонарик', mirror: 'Зеркало', note: 'Записка',
+      bone: 'Кость', locket: 'Медальон',
       key1: 'Ключ 1', key2: 'Ключ 2', key3: 'Ключ 3', key4: 'Ключ 4'
     };
     return names[item] || item;
@@ -214,13 +231,16 @@ const Game = {
       this.els.progress.textContent = `Глава ${scene.chapter}`;
     }
 
-    // Эффект печатной машинки
+    // Печатная машинка
     let i = 0;
     const speed = 22;
-    const timer = setInterval(() => {
+    const typeTimer = setInterval(() => {
       this.els.story.textContent += text[i] || '';
       i++;
-      if (i > text.length) clearInterval(timer);
+      if (i > text.length) {
+        clearInterval(typeTimer);
+        this.els.story.classList.remove('typing');
+      }
       if (i === Math.floor(text.length / 2) && Math.random() < 0.35) Audio.playWhisper();
     }, speed);
 
@@ -239,6 +259,7 @@ const Game = {
           const nextScene = SCENES[c.next];
           if (nextScene) {
             if (nextScene.death) return this.die(nextScene.msg);
+            this.state.visited.add(c.next);
             this.showScene(nextScene);
           }
         };
@@ -250,8 +271,7 @@ const Game = {
   die(msg) {
     this.state.deaths++;
     setTimeout(() => {
-      Screamer.show(1500);
-      Audio.playScreamer();
+      Screamer.show(1500, 'scream');
       setTimeout(() => {
         this.els.gameScreen.classList.remove('active');
         this.els.deathScreen.classList.add('active');
@@ -264,8 +284,7 @@ const Game = {
 
   ending(type) {
     setTimeout(() => {
-      Screamer.show(2000);
-      Audio.playScreamer();
+      Screamer.final();
       setTimeout(() => {
         this.els.gameScreen.classList.remove('active');
         this.els.endScreen.classList.add('active');
@@ -276,6 +295,9 @@ const Game = {
         if (type === 'ending') {
           this.els.endTitle.textContent = 'ТЫ ОТКРЫЛ ДВЕРЬ...';
           this.els.endText.textContent = `И вышел. Но что-то вышло вместе с тобой. Оно теперь живёт в тебе. И оно тоже знает твоё имя. ${this.state.name}.`;
+        } else if (type === 'ending2') {
+          this.els.endTitle.textContent = 'ТЫ ОСТАЛСЯ';
+          this.els.endText.textContent = 'Ты не открыл дверь. Ты ждал так долго, что дверь открылась сама. С той стороны.';
         } else if (type === 'ending3') {
           this.els.endTitle.textContent = 'ТЫ ЗАБЫЛ СЕБЯ';
           this.els.endText.textContent = 'Ты стал частью этого места. Частью тьмы. Частью того, что ждёт следующего игрока.';
@@ -283,12 +305,15 @@ const Game = {
 
         this.els.endStats.textContent = `Время: ${m}:${String(s).padStart(2, '0')} • Ключей: ${this.state.keys} • Смертей: ${this.state.deaths}`;
         Audio.stopAmbient();
-      }, 1800);
+      }, 2200);
     }, 800);
   },
 
   togglePause() {
     this.els.pauseMenu.classList.toggle('hidden');
+    if (!this.els.pauseMenu.classList.contains('hidden')) {
+      this.saveProgress();
+    }
   },
 
   saveProgress() {
@@ -299,7 +324,9 @@ const Game = {
         sanity: this.state.sanity,
         chapter: this.state.chapter,
         items: [...this.state.items],
-        scene: this.state.scene
+        scene: this.state.scene,
+        visited: [...this.state.visited],
+        deaths: this.state.deaths
       }));
     } catch (e) {}
   },
@@ -307,18 +334,38 @@ const Game = {
   loadProgress(showNotify) {
     try {
       const raw = localStorage.getItem('horror_save');
-      if (!raw) return false;
+      if (!raw) {
+        if (showNotify) UI.notify('📂 Нет сохранения', 'Нечего загружать.');
+        return false;
+      }
       const data = JSON.parse(raw);
       Object.assign(this.state, data);
       this.state.items = new Set(data.items || []);
+      this.state.visited = new Set(data.visited || []);
       if (showNotify) {
         this.els.keysCount.textContent = this.state.keys;
         this.els.sanity.textContent = this.state.sanity;
         this.els.progress.textContent = `Глава ${this.state.chapter}`;
-        UI.notify('Загружено', 'Прогресс восстановлен.');
+        this.state.items.forEach(it => {
+          const el = this.els.inventoryBar.querySelector(`[data-key="${it}"]`);
+          if (el) el.classList.add('owned');
+        });
+        UI.notify('📂 Загружено', `Привет, ${this.state.name}.`);
+        this.togglePause();
       }
       return true;
     } catch (e) { return false; }
+  },
+
+  checkAutosave() {
+    // Показываем уведомление если есть сейв
+    try {
+      const raw = localStorage.getItem('horror_save');
+      if (raw) {
+        const data = JSON.parse(raw);
+        setTimeout(() => UI.notify('🔍 Найдено сохранение', `${data.name}, продолжить?`), 3000);
+      }
+    } catch (e) {}
   },
 
   restart() {
@@ -340,9 +387,7 @@ const Effects = {
   silhouette() {
     const s = document.createElement('div');
     s.className = 'silhouette';
-    s.style.left = Math.random() < 0.5 ? '0' : 'auto';
-    s.style.right = s.style.left === 'auto' ? '0' : 'auto';
-    if (s.style.right === '0') s.style.animationDirection = 'reverse';
+    s.style.left = '0';
     document.body.appendChild(s);
     setTimeout(() => s.remove(), 4000);
     Audio.playWhisper();
@@ -364,22 +409,25 @@ const Effects = {
 };
 
 // ============================================
-// UI
+// UI — уведомления
 // ============================================
 const UI = {
   fakeMessages: [
     { title: '⚠️ Внимание', text: 'Обнаружена попытка доступа к вашей камере.' },
-    { title: '📷 Камера', text: 'Приложение "ОНО" запрашивает доступ к вашей камере.' },
+    { title: '📷 Камера', text: 'Приложение "ОНО" запрашивает доступ к камере.' },
     { title: '🎤 Микрофон', text: 'Кто-то слушает вас. Вы уверены?' },
     { title: '📍 Геолокация', text: 'Ваше местоположение: неизвестно. Но оно знает.' },
     { title: '🖥️ Экран', text: 'Кто-то смотрит на ваш экран прямо сейчас.' },
     { title: '💀 Система', text: 'Ошибка 0xDEAD. Что-то пошло не так.' },
     { title: '🔓 Доступ', text: 'Неизвестное устройство подключено к вашей сети.' },
-    { title: '⏱️ Время', text: 'Осталось не так много. Поспеши.' }
+    { title: '⏱️ Время', text: 'Осталось не так много. Поспеши.' },
+    { title: '🚪 Дверь', text: 'Не открывай. Я серьёзно.' },
+    { title: '👁️ Наблюдение', text: 'Не оборачивайся.' }
   ],
 
   notify(title, text) {
     const box = document.getElementById('fake-notifications');
+    if (!box) return;
     const n = document.createElement('div');
     n.className = 'notif';
     n.innerHTML = `<div class="title">${title}</div><div>${text}</div>`;
@@ -389,7 +437,7 @@ const UI = {
       n.style.transform = 'translateX(120%)';
       n.style.transition = 'all 0.4s';
       setTimeout(() => n.remove(), 400);
-    }, 4000);
+    }, 4500);
   },
 
   fakeNotification() {
@@ -404,8 +452,14 @@ const UI = {
 window.addEventListener('DOMContentLoaded', () => {
   Game.init();
 
-  // Приветственное уведомление
+  // Приветствие
   setTimeout(() => UI.notify('Добро пожаловать', 'Не оборачивайся.'), 2000);
   setTimeout(() => UI.notify('🔍 Сканирование', 'Поиск камеры...'), 6000);
   setTimeout(() => UI.notify('✅ Найдено', 'Камера: активна.'), 8500);
+
+  // Пытаемся предзагрузить картинки
+  ['assets/girl.png', 'assets/smile.jpg', 'assets/scream.jpg'].forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
 });

@@ -1,12 +1,12 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: #000;
   color: #c8c8c8;
-  font-family: 'Courier New', monospace;
+  font-family: 'Courier New', Courier, monospace;
   cursor: crosshair;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -16,7 +16,7 @@ html, body {
 #noise {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 100;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
   animation: noiseShift 0.15s steps(3) infinite;
   mix-blend-mode: overlay;
 }
@@ -30,15 +30,15 @@ html, body {
 /* ===== ВИНЬЕТКА ===== */
 #vignette {
   position: fixed; inset: 0; pointer-events: none; z-index: 99;
-  background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.6) 60%, #000 100%);
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 60%, #000 100%);
   animation: vignettePulse 4s ease-in-out infinite;
 }
 @keyframes vignettePulse {
   0%,100% { opacity: 1; }
-  50% { opacity: 0.85; }
+  50% { opacity: 0.82; }
 }
 
-/* ===== СКАНЛАЙНЫ (CRT-эффект) ===== */
+/* ===== СКАНЛАЙНЫ ===== */
 #scanlines {
   position: fixed; inset: 0; pointer-events: none; z-index: 101;
   background: repeating-linear-gradient(
@@ -54,12 +54,24 @@ html, body {
 /* ===== КРОВАВЫЙ КУРСОР ===== */
 #blood-cursor {
   position: fixed; top: 0; left: 0;
-  width: 40px; height: 40px;
+  width: 50px; height: 50px;
   pointer-events: none; z-index: 998;
-  background: radial-gradient(circle, rgba(139,0,0,0.6) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(139,0,0,0.5) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   mix-blend-mode: multiply;
+  transition: width 0.2s, height 0.2s;
 }
+
+/* ===== FLASH ===== */
+#flash {
+  position: fixed; inset: 0;
+  background: #fff;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s;
+}
+#flash.active { opacity: 1; }
 
 /* ===== ЭКРАНЫ ===== */
 .screen {
@@ -82,20 +94,17 @@ h1, h2 {
   letter-spacing: 4px;
   margin-bottom: 1.5rem;
   text-shadow: 0 0 10px #8b0000, 0 0 40px #4a0000, 0 0 80px #2a0000;
+  line-height: 1.2;
 }
 
 /* ===== ГЛИТЧ ===== */
-.glitch {
-  position: relative;
-  animation: glitchShadow 3s infinite;
-}
+.glitch { position: relative; animation: glitchShadow 3s infinite; }
 .glitch::before,
 .glitch::after {
   content: attr(data-text);
   position: absolute;
   top: 0; left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
 }
 .glitch::before {
   color: #00ffff;
@@ -126,6 +135,7 @@ h1, h2 {
   92% { transform: translate(2px, 1px); }
 }
 
+/* ===== ТЕКСТ ===== */
 .whisper {
   color: #7a7a7a;
   font-style: italic;
@@ -133,6 +143,7 @@ h1, h2 {
   animation: flicker 3s infinite;
   max-width: 700px;
   line-height: 1.6;
+  font-size: 1rem;
 }
 .whisper.small { font-size: 0.85rem; color: #555; }
 .whisper.tiny { font-size: 0.7rem; color: #333; margin-top: 1.5rem; }
@@ -147,6 +158,14 @@ h1, h2 {
 }
 
 /* ===== КНОПКИ ===== */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .btn {
   background: transparent;
   color: #8b0000;
@@ -156,7 +175,7 @@ h1, h2 {
   font-size: 1rem;
   letter-spacing: 2px;
   cursor: pointer;
-  margin: 0.4rem;
+  margin: 0.3rem;
   transition: all 0.25s;
   text-shadow: 0 0 5px #8b0000;
   position: relative;
@@ -199,7 +218,7 @@ h1, h2 {
   text-align: center;
   outline: none;
   margin: 1rem 0;
-  width: 300px;
+  width: min(300px, 80vw);
   letter-spacing: 3px;
   caret-color: #8b0000;
 }
@@ -223,11 +242,21 @@ h1, h2 {
   font-size: 0.85rem;
   color: #666;
   letter-spacing: 1px;
+  gap: 10px;
 }
 .hud-item b { color: #8b0000; }
 
+#room {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 #story {
   max-width: 800px;
+  width: 100%;
   font-size: clamp(1rem, 1.4vw, 1.15rem);
   line-height: 1.9;
   margin-bottom: 2rem;
@@ -235,6 +264,15 @@ h1, h2 {
   color: #b0b0b0;
   text-align: left;
   padding: 0 1rem;
+}
+#story::after {
+  content: '▌';
+  color: #8b0000;
+  animation: blink 0.8s infinite;
+}
+@keyframes blink {
+  0%,50% { opacity: 1; }
+  51%,100% { opacity: 0; }
 }
 
 #choices {
@@ -280,23 +318,22 @@ h1, h2 {
   bottom: 0; left: 0; right: 0;
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   padding: 12px;
   background: linear-gradient(0deg, rgba(0,0,0,0.9), transparent);
   z-index: 50;
-  font-size: 0.85rem;
+  font-size: 1.2rem;
   color: #333;
-  letter-spacing: 1px;
 }
 .inv-item {
-  opacity: 0.25;
+  opacity: 0.2;
   transition: all 0.4s;
   padding: 4px 8px;
   border: 1px solid transparent;
+  border-radius: 4px;
 }
 .inv-item.owned {
   opacity: 1;
-  color: #8b0000;
   border-color: #8b0000;
   text-shadow: 0 0 8px #8b0000;
   animation: itemPulse 2s infinite;
@@ -324,12 +361,18 @@ h1, h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
-#screamer-content svg,
-#screamer-content img {
+#screamer-content img,
+#screamer-content svg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation: screamerZoom 0.4s ease-out;
+}
+@keyframes screamerZoom {
+  0% { transform: scale(1.3); filter: brightness(2) contrast(2); }
+  100% { transform: scale(1); filter: brightness(1) contrast(1); }
 }
 @keyframes shake {
   0% { transform: translate(0,0) rotate(0); }
@@ -337,6 +380,18 @@ h1, h2 {
   50% { transform: translate(12px, -6px) rotate(0.5deg); }
   75% { transform: translate(-6px, -12px) rotate(-0.3deg); }
   100% { transform: translate(6px, 12px) rotate(0.3deg); }
+}
+
+/* Девочка — по центру, с прозрачным фоном */
+#screamer-content img.girl {
+  object-fit: contain;
+  filter: contrast(1.3) saturate(1.2);
+  animation: girlAppear 0.6s ease-out;
+}
+@keyframes girlAppear {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ===== МЕНЮ ПАУЗЫ ===== */
@@ -361,10 +416,10 @@ h1, h2 {
   box-shadow: 0 0 60px rgba(139,0,0,0.4);
 }
 
-/* ===== ФЕЙКОВЫЕ УВЕДОМЛЕНИЯ ===== */
+/* ===== УВЕДОМЛЕНИЯ ===== */
 #fake-notifications {
   position: fixed;
-  top: 20px; right: 20px;
+  top: 60px; right: 20px;
   z-index: 997;
   display: flex;
   flex-direction: column;
@@ -380,6 +435,7 @@ h1, h2 {
   max-width: 300px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.8);
   animation: notifIn 0.3s ease-out;
+  backdrop-filter: blur(5px);
 }
 .notif .title { color: #8b0000; font-weight: bold; margin-bottom: 4px; }
 @keyframes notifIn {
@@ -387,7 +443,7 @@ h1, h2 {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* ===== ВНЕЗАПНАЯ ТЕНЬ ===== */
+/* ===== ЭФФЕКТЫ ===== */
 .shadow-pass {
   position: fixed;
   inset: 0;
@@ -402,25 +458,23 @@ h1, h2 {
   100% { opacity: 0; }
 }
 
-/* ===== ПРОХОД ФИГУРЫ ===== */
 .silhouette {
   position: fixed;
   bottom: 0;
   width: 150px;
   height: 400px;
   background: #000;
-  filter: blur(3px);
+  filter: blur(4px);
   z-index: 200;
   pointer-events: none;
   animation: walk 4s linear forwards;
   border-radius: 50% 50% 0 0 / 30% 30% 0 0;
 }
 @keyframes walk {
-  from { transform: translateX(-200px); opacity: 0.9; }
-  to { transform: translateX(calc(100vw + 200px)); opacity: 0.9; }
+  from { transform: translateX(-200px); opacity: 0.95; }
+  to { transform: translateX(calc(100vw + 200px)); opacity: 0.95; }
 }
 
-/* ===== ПАДАЮЩИЕ КАПЛИ КРОВИ ===== */
 .blood-drop {
   position: fixed;
   top: -20px;
@@ -436,19 +490,32 @@ h1, h2 {
   to { transform: translateY(100vh); opacity: 0; }
 }
 
-/* ===== ЭФФЕКТ "ВТОРЖЕНИЕ" ===== */
 body.intrusion #vignette {
-  background: radial-gradient(ellipse at center, rgba(139,0,0,0.1) 20%, #000 100%);
+  background: radial-gradient(ellipse at center, rgba(139,0,0,0.15) 20%, #000 100%);
 }
 
-/* ===== F11 FULLSCREEN HINT ===== */
-#fullscreen-btn { margin-top: 1rem; font-size: 0.75rem; padding: 0.5rem 1rem; }
+/* ===== ARG ===== */
+#arg-hint {
+  position: fixed;
+  bottom: 2px; left: 2px;
+  color: #111;
+  font-size: 7px;
+  z-index: 1;
+  user-select: text;
+  cursor: text;
+  max-width: 60vw;
+  word-break: break-all;
+  line-height: 1.2;
+}
 
-/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+/* ===== МОБИЛЬНАЯ ===== */
 @media (max-width: 768px) {
-  #hud { font-size: 0.7rem; padding: 10px 15px; }
-  #inventory-bar { gap: 8px; font-size: 0.7rem; flex-wrap: wrap; }
+  #hud { font-size: 0.7rem; padding: 10px 12px; }
+  #inventory-bar { gap: 8px; font-size: 1rem; flex-wrap: wrap; }
   #story { font-size: 0.95rem; padding: 0 0.5rem; }
   .choice { font-size: 0.9rem; padding: 0.8rem; }
   h1, h2 { letter-spacing: 2px; }
+  #fake-notifications { top: auto; bottom: 80px; right: 10px; }
+  .notif { max-width: 250px; font-size: 0.75rem; }
+  #name-input { font-size: 1.2rem; }
 }
