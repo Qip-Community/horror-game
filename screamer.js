@@ -1,5 +1,5 @@
 // ============================================
-// GameScreamer — БЕЗ конфликтов с браузерным Screamer
+// GameScreamer — обычные скримеры
 // ============================================
 
 const GameScreamer = {
@@ -51,6 +51,7 @@ const GameScreamer = {
     const img = document.createElement('img');
     img.src = src;
     if (key === 'girl') img.className = 'girl';
+    if (opts.glitch) img.classList.add('glitch-img');
     img.alt = '';
     img.draggable = false;
     contentEl.appendChild(img);
@@ -58,18 +59,15 @@ const GameScreamer = {
     screamerEl.classList.remove('hidden');
 
     try {
-      if (opts.double) {
-        GameAudio.playDoubleScream();
-      } else {
-        GameAudio.playScream();
-      }
-    } catch (e) { console.warn('Scream sound failed', e); }
+      if (opts.double) GameAudio.playDoubleScream();
+      else GameAudio.playScream();
+    } catch(e) {}
 
     document.body.classList.add('trembling');
     setTimeout(() => document.body.classList.remove('trembling'), duration);
 
     if (navigator.vibrate) {
-      try { navigator.vibrate([150, 60, 150, 60, 300, 60, 500]); } catch(e){}
+      try { navigator.vibrate([150, 60, 150, 60, 300, 60, 500]); } catch(e) {}
     }
 
     setTimeout(() => {
@@ -85,18 +83,16 @@ const GameScreamer = {
     this.show(420, key);
   },
 
-  girl(duration = 1400) {
-    this.show(duration, 'girl');
-  },
+  girl(duration = 1400) { this.show(duration, 'girl'); },
 
   double(duration = 1600, key = 'scream') {
-    this.show(duration, key, { double: true, red: true });
+    this.show(duration, key, { double: true, red: true, glitch: true });
   },
 
   final() {
-    this.show(1500, 'scream', { double: true, red: true });
-    setTimeout(() => this.show(1600, 'girl'), 2200);
-    setTimeout(() => this.show(2200, 'smile', { double: true, red: true }), 4400);
+    this.show(1500, 'scream', { double: true, red: true, glitch: true });
+    setTimeout(() => this.show(1600, 'girl', { glitch: true }), 2200);
+    setTimeout(() => this.show(2200, 'smile', { double: true, red: true, glitch: true }), 4400);
   },
 
   girlReveal() {
@@ -121,10 +117,10 @@ const GameScreamer = {
     setTimeout(() => {
       img.style.transition = 'none';
       img.style.animation = 'girlAppear 0.4s';
-      try { GameAudio.playScream(); } catch (e) {}
+      try { GameAudio.playScream(); } catch(e) {}
       document.body.classList.add('trembling');
       if (navigator.vibrate) {
-        try { navigator.vibrate([200, 100, 400]); } catch(e){}
+        try { navigator.vibrate([200, 100, 400]); } catch(e) {}
       }
     }, 2000);
 

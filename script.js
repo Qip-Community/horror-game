@@ -12,7 +12,8 @@ const Game = {
     scene: 'intro',
     startTime: 0,
     deaths: 0,
-    visited: []
+    visited: [],
+    countdown: 15 * 60  // 15 минут
   },
 
   els: {},
@@ -22,6 +23,7 @@ const Game = {
     this.cacheEls();
     this.bindEvents();
     this.preloadImages();
+    try { Meta.init(); } catch(e) { console.warn('Meta init failed', e); }
   },
 
   cacheEls() {
@@ -40,10 +42,12 @@ const Game = {
       progress: $('progress'),
       nameInput: $('name-input'),
       deathMsg: $('death-msg'),
+      deathCause: $('death-cause'),
       deathStats: $('death-stats'),
       endTitle: $('end-title'),
       endText: $('end-text'),
       endStats: $('end-stats'),
+      endDeathsList: $('end-deaths-list'),
       pauseMenu: $('pause-menu'),
       pauseFlavor: $('pause-flavor'),
       inventoryBar: $('inventory-bar')
@@ -65,6 +69,12 @@ const Game = {
 
     const fsBtn = $('fullscreen-btn');
     if (fsBtn) fsBtn.addEventListener('click', () => this.toggleFullscreen());
+
+    const camBtn = $('webcam-btn');
+    if (camBtn) camBtn.addEventListener('click', async () => {
+      const ok = await Meta.enableWebcam();
+      if (ok) UI.notify('📷 Камера', 'Оно теперь видит тебя.', true);
+    });
 
     const nameBtn = $('name-btn');
     if (nameBtn) nameBtn.addEventListener('click', () => this.confirmName());
@@ -102,48 +112,42 @@ const Game = {
       }
     });
 
+    // Тень за курсором
     document.addEventListener('mousemove', e => {
-      const cursor = document.getElementById('blood-cursor');
-      if (cursor) {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
+      const blood = document.getElementById('blood-cursor');
+      const shadow = document.getElementById('shadow-cursor');
+      if (blood) { blood.style.left = e.clientX + 'px'; blood.style.top = e.clientY + 'px'; }
+      if (shadow) {
+        const lag = 0.05 + Math.random() * 0.15;
+        const curX = parseFloat(shadow.style.left) || e.clientX;
+        const curY = parseFloat(shadow.style.top) || e.clientY;
+        shadow.style.left = (curX + (e.clientX - curX) * lag) + 'px';
+        shadow.style.top = (curY + (e.clientY - curY) * lag) + 'px';
       }
     });
 
     document.addEventListener('click', () => {
-      try {
-        if (GameAudio.ctx) GameAudio.playClick();
-      } catch (e) {}
+      try { if (GameAudio.ctx) GameAudio.playClick(); } catch(e) {}
     });
   },
 
   async toggleFullscreen() {
     try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (e) {
-      console.warn('Fullscreen failed', e);
-    }
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch(e) { console.warn('Fullscreen failed', e); }
   },
 
   startNameInput() {
-    // Звук — не критично, оборачиваем в try
     try {
-      GameAudio.init();
-      GameAudio.resume();
-      GameAudio.startAmbient();
-    } catch (e) {
-      console.warn('Audio start failed:', e);
-    }
+      GameAudio.init(); GameAudio.resume(); GameAudio.startAmbient();
+    } catch(e) { console.warn('Audio failed', e); }
 
     this.els.startScreen.classList.remove('active');
     this.els.nameScreen.classList.add('active');
 
     setTimeout(() => {
-      try { this.els.nameInput.focus(); } catch (e) {}
+      try { this.els.nameInput.focus(); } catch(e) {}
     }, 100);
   },
 
@@ -151,11 +155,17 @@ const Game = {
     const name = (this.els.nameInput.value || '').trim() || 'Незнакомец';
     this.state.name = name;
 
+    // Сохраняем имя для мета-финала
+    try { localStorage.setItem('horror_last_name', name); } catch(e) {}
+
     this.els.nameScreen.classList.remove('active');
     this.els.gameScreen.classList.add('active');
 
     this.state.startTime = Date.now();
+    this.state.countdown = 15 * 60;
+
     this.startTimer();
+    this.startCountdown();
     this.startRandomEvents();
     this.startHallucinations();
 
@@ -169,14 +179,47 @@ const Game = {
       const s = String(elapsed % 60).padStart(2, '0');
       if (this.els.timer) this.els.timer.textContent = `⏱ ${m}:${s}`;
       if (elapsed > 0 && elapsed % 40 === 0) this.adjustSanity(-2);
+      try { Meta.updateAudioIntensity(); } catch(e) {}
+    }, 1000);
+    this.timers.push(t);
+  },
+
+  // Обратный отсчёт 15 минут
+  startCountdown() {
+    const t = setInterval(() => {
+      if (!this.els.gameScreen.classList.contains('active')) return;
+      this.state.countdown--;
+
+      const m = Math.floor(this.state.countdown / 60);
+      const s = this.state.countdown % 60;
+      const el = this.els.timer;
+      if (el) el.textContent = `⏱ ${m}:${String(s).padStart(2, '0')}`;
+
+      // Предупреждения
+      if (this.state.countdown === 60) {
+        UI.notify('⚠️ ПОСЛЕДНЯЯ МИНУТА', 'Оно уже близко.', true);
+        GameAudio.playHeartbeat();
+      }
+      if (this.state.countdown === 30) {
+        UI.notify('⚠️ 30 СЕКУНД', 'Беги.', true);
+      }
+      if (this.state.countdown === 10) {
+        UI.notify('⚠️ 10', 'ПОСЛЕДНИЙ ШАНС.', true);
+        GameScreamer.mini();
+      }
+
+      if (this.state.countdown <= 0) {
+        clearInterval(t);
+        this.die('Время вышло. Оно вошло само.', 'death_timeout');
+      }
     }, 1000);
     this.timers.push(t);
   },
 
   startRandomEvents() {
     const t = setInterval(() => {
-      if (!this.els.gameScreen || !this.els.gameScreen.classList.contains('active')) return;
-      if (this.els.pauseMenu && !this.els.pauseMenu.classList.contains('hidden')) return;
+      if (!this.els.gameScreen.classList.contains('active')) return;
+      if (!this.els.pauseMenu.classList.contains('hidden')) return;
 
       const r = Math.random();
       const sanityFactor = (100 - this.state.sanity) / 100;
@@ -199,18 +242,18 @@ const Game = {
           GameAudio.playGrowl();
         } else if (r < 0.34 + sanityFactor * 0.1) {
           Effects.tremble(3000);
+        } else if (r < 0.36 + sanityFactor * 0.1) {
+          Meta.maybeWebcamScreamer(0.3);
         }
-      } catch (e) {
-        console.warn('Random event failed:', e);
-      }
+      } catch(e) { console.warn('Random event failed', e); }
     }, 9000);
     this.timers.push(t);
   },
 
   startHallucinations() {
     const t = setInterval(() => {
-      if (!this.els.gameScreen || !this.els.gameScreen.classList.contains('active')) return;
-      if (this.els.pauseMenu && !this.els.pauseMenu.classList.contains('hidden')) return;
+      if (!this.els.gameScreen.classList.contains('active')) return;
+      if (!this.els.pauseMenu.classList.contains('hidden')) return;
       if (this.state.sanity > 60) return;
 
       const words = ['СЗАДИ', 'БЕГИ', 'ОНО', 'НЕ ОБОРАЧИВАЙСЯ', 'ТЫ', 'МЁРТВ', 'ИМЯ', this.state.name.toUpperCase()];
@@ -231,19 +274,19 @@ const Game = {
   addKey() {
     this.state.keys++;
     if (this.els.keysCount) this.els.keysCount.textContent = this.state.keys;
-    try { GameAudio.playThud(); } catch (e) {}
+    try { GameAudio.playThud(); } catch(e) {}
 
     if (this.state.keys === 3) {
       setTimeout(() => this.showScene({
         chapter: 3,
-        text: () => 'Что-то шевелится у тебя в груди. Ты смотришь вниз. Из твоей грудной клетки торчит ржавый ключ. Последний.',
+        text: () => 'Что-то шевелится у тебя в груди. Из твоей грудной клетки торчит ржавый ключ. Последний.',
         choices: [
           { text: 'Вытащить его', next: 'final_door',
             onChoose: () => {
               this.state.keys++;
               if (this.els.keysCount) this.els.keysCount.textContent = this.state.keys;
               GameScreamer.girlReveal();
-              try { GameAudio.playWhisper(); } catch (e) {}
+              try { GameAudio.playWhisper(); } catch(e) {}
             } }
         ]
       }), 1500);
@@ -255,7 +298,7 @@ const Game = {
     const el = this.els.inventoryBar && this.els.inventoryBar.querySelector(`[data-key="${item}"]`);
     if (el) el.classList.add('owned');
     UI.notify('Получено', this.itemName(item));
-    try { GameAudio.playClick(); } catch (e) {}
+    try { GameAudio.playClick(); } catch(e) {}
   },
 
   itemName(item) {
@@ -281,12 +324,12 @@ const Game = {
     }
 
     if (this.state.sanity === 0) {
-      this.die('Твой разум не выдержал.');
+      this.die('Твой разум не выдержал.', 'death_insanity');
     }
   },
 
   showScene(scene) {
-    if (scene.death) return this.die(scene.msg);
+    if (scene.death) return this.die(scene.msg, scene.id);
 
     const text = typeof scene.text === 'function' ? scene.text(this.state.name) : scene.text;
 
@@ -298,7 +341,6 @@ const Game = {
       if (this.els.progress) this.els.progress.textContent = `Глава ${scene.chapter}`;
     }
 
-    // Печатная машинка
     let i = 0;
     const speed = 22;
     const typeTimer = setInterval(() => {
@@ -306,10 +348,10 @@ const Game = {
       i++;
       if (i > text.length) clearInterval(typeTimer);
       if (i === Math.floor(text.length / 2) && Math.random() < 0.4) {
-        try { GameAudio.playWhisper(); } catch (e) {}
+        try { GameAudio.playWhisper(); } catch(e) {}
       }
       if (i % 30 === 0 && Math.random() < 0.15) {
-        try { GameAudio.playStep(); } catch (e) {}
+        try { GameAudio.playStep(); } catch(e) {}
       }
     }, speed);
 
@@ -321,15 +363,15 @@ const Game = {
         btn.textContent = c.text;
         btn.style.animation = `notifIn 0.4s ease-out ${idx * 0.08}s backwards`;
         btn.addEventListener('click', () => {
-          try { GameAudio.playStep(); } catch (e) {}
-          try { if (c.onChoose) c.onChoose(); } catch (e) { console.warn('onChoose failed:', e); }
+          try { GameAudio.playStep(); } catch(e) {}
+          try { if (c.onChoose) c.onChoose(); } catch(e) { console.warn('onChoose failed', e); }
 
           if (c.next === 'ending' || c.next === 'ending2' || c.next === 'ending3') {
             return this.ending(c.next);
           }
           const nextScene = SCENES[c.next];
           if (nextScene) {
-            if (nextScene.death) return this.die(nextScene.msg);
+            if (nextScene.death) return this.die(nextScene.msg, c.next);
             if (this.state.visited.indexOf(c.next) === -1) this.state.visited.push(c.next);
             this.showScene(nextScene);
           }
@@ -339,25 +381,62 @@ const Game = {
     }, text.length * speed + 200);
   },
 
-  die(msg) {
+  die(msg, cause) {
     this.state.deaths++;
+    this.state.lastDeath = cause || 'unknown';
+
+    // Сохраняем в мета-статистику
+    try {
+      Meta.stats.totalDeaths = (Meta.stats.totalDeaths || 0) + 1;
+      Meta.stats.deaths.push({ cause: cause || 'unknown', time: Date.now() });
+      if (Meta.stats.deaths.length > 50) Meta.stats.deaths.shift();
+      Meta.saveStats();
+    } catch(e) {}
+
     setTimeout(() => {
-      try { GameScreamer.double(1600, 'scream'); } catch (e) {}
+      try { GameScreamer.double(1600, 'scream'); } catch(e) {}
       setTimeout(() => {
         this.els.gameScreen.classList.remove('active');
         this.els.deathScreen.classList.add('active');
         if (this.els.deathMsg) this.els.deathMsg.textContent = msg || 'Ты был слишком медленным.';
+        if (this.els.deathCause) this.els.deathCause.textContent = this.deathTitle(cause);
         if (this.els.deathStats) {
           this.els.deathStats.textContent = `Глава ${this.state.chapter} • Ключей: ${this.state.keys}/4 • Смертей: ${this.state.deaths}`;
         }
-        try { GameAudio.stopAmbient(); } catch (e) {}
+        try { GameAudio.stopAmbient(); } catch(e) {}
       }, 1500);
     }, 400);
   },
 
+  deathTitle(cause) {
+    const titles = {
+      death_mirror: '🪞 Разбился о собственное отражение',
+      death_mirror2: '👁️ Отражение оказалось настоящим',
+      death_mirror3: '🪞 Обернулся на голос из зеркала',
+      death_behind: '👤 Обернулся не вовремя',
+      death_door: '🚪 Открыл дверь не тому',
+      death_heart: '🫀 Слишком много шума',
+      death_head: '🧠 Стук вошёл внутрь',
+      death_drain: '🕳️ Утонул в ванной без воды',
+      death_face: '😶 Увидел своё лицо без лица',
+      death_tunnel: '🕷️ Туннель обернулся вокруг',
+      death_well: '💧 Голос из колодца',
+      death_well2: '💧 Второй крик',
+      death_well3: '💧 Долгое падение',
+      death_ritual: '📖 Произнёс слово',
+      death_walls: '🩸 Кровь на стенах',
+      death_bones: '🦴 Кости схватили',
+      death_erase: '✏️ Стёр своё лицо',
+      death_closet: '🚪 Держал дверцу шкафа',
+      death_timeout: '⏱ Время вышло',
+      death_insanity: '🧠 Рассудок не выдержал'
+    };
+    return titles[cause] || '💀 Причина неизвестна';
+  },
+
   ending(type) {
     setTimeout(() => {
-      try { GameScreamer.final(); } catch (e) {}
+      try { GameScreamer.final(); } catch(e) {}
       setTimeout(() => {
         this.els.gameScreen.classList.remove('active');
         this.els.endScreen.classList.add('active');
@@ -380,7 +459,14 @@ const Game = {
         if (this.els.endStats) {
           this.els.endStats.textContent = `Время: ${m}:${String(s).padStart(2, '0')} • Ключей: ${this.state.keys} • Смертей: ${this.state.deaths}`;
         }
-        try { GameAudio.stopAmbient(); } catch (e) {}
+
+        // Список смертей
+        if (this.els.endDeathsList && Meta.stats.deaths.length > 0) {
+          const lastDeaths = Meta.stats.deaths.slice(-5).map(d => this.deathTitle(d.cause)).join(' • ');
+          this.els.endDeathsList.textContent = `Всего смертей за всё время: ${Meta.stats.totalDeaths}. Последние: ${lastDeaths}`;
+        }
+
+        try { GameAudio.stopAmbient(); } catch(e) {}
       }, 5000);
     }, 800);
   },
@@ -414,7 +500,7 @@ const Game = {
         visited: this.state.visited,
         deaths: this.state.deaths
       }));
-    } catch (e) {}
+    } catch(e) {}
   },
 
   loadProgress(showNotify) {
@@ -441,12 +527,10 @@ const Game = {
         this.togglePause();
       }
       return true;
-    } catch (e) { return false; }
+    } catch(e) { return false; }
   },
 
-  restart() {
-    location.reload();
-  }
+  restart() { location.reload(); }
 };
 
 // ============================================
@@ -466,7 +550,7 @@ const Effects = {
     s.style.left = '0';
     document.body.appendChild(s);
     setTimeout(() => s.remove(), 4000);
-    try { GameAudio.playWhisper(); GameAudio.playGrowl(); } catch (e) {}
+    try { GameAudio.playWhisper(); GameAudio.playGrowl(); } catch(e) {}
   },
 
   bloodRain() {
@@ -506,7 +590,10 @@ const UI = {
     { title: '👁️ Наблюдение', text: 'Не оборачивайся.' },
     { title: '📁 Файлы', text: 'Обнаружена скрытая папка: "ОНО".' },
     { title: '🩸 Кровь', text: 'Обнаружены следы на вашей клавиатуре.' },
-    { title: '🔊 Звук', text: 'Записан звук. Источник: за вашей спиной.' }
+    { title: '🔊 Звук', text: 'Записан звук. Источник: за вашей спиной.' },
+    { title: '📸 Вспоминание', text: 'Ты уже был здесь. Ты это помнишь?' },
+    { title: '🌐 Сеть', text: 'Кто-то подключился к вашему Wi-Fi.' },
+    { title: '🕐 3:33', text: 'Не смотри на часы.' }
   ],
 
   notify(title, text, red = false) {
@@ -529,7 +616,7 @@ const UI = {
     const red = Math.random() < 0.3;
     this.notify(msg.title, msg.text, red);
     if (red) {
-      try { GameAudio.playThud(); } catch (e) {}
+      try { GameAudio.playThud(); } catch(e) {}
     }
   }
 };
@@ -538,11 +625,8 @@ const UI = {
 // СТАРТ
 // ============================================
 window.addEventListener('DOMContentLoaded', () => {
-  try {
-    Game.init();
-  } catch (e) {
-    console.error('Game init failed:', e);
-  }
+  try { Game.init(); }
+  catch(e) { console.error('Game init failed:', e); }
 
   setTimeout(() => UI.notify('Добро пожаловать', 'Не оборачивайся.'), 2000);
   setTimeout(() => UI.notify('🔍 Сканирование', 'Поиск камеры...'), 6000);

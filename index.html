@@ -11,13 +11,15 @@
 </head>
 <body>
 
-<!-- Слои эффектов -->
+<!-- ===== СЛОИ ЭФФЕКТОВ ===== -->
 <div id="noise"></div>
 <div id="vignette"></div>
 <div id="scanlines"></div>
 <div id="blood-cursor"></div>
+<div id="shadow-cursor"></div>
 <div id="flash"></div>
 <div id="red-pulse"></div>
+<div id="fog"></div>
 
 <!-- ===== СТАРТОВЫЙ ЭКРАН ===== -->
 <section id="start-screen" class="screen active">
@@ -26,10 +28,13 @@
   <div class="btn-group">
     <button id="start-btn" class="btn" type="button">ВОЙТИ</button>
     <button id="fullscreen-btn" class="btn btn-small" type="button">⛶ ПОЛНЫЙ ЭКРАН</button>
+    <button id="webcam-btn" class="btn btn-small" type="button">📷 РАЗРЕШИТЬ КАМЕРУ</button>
   </div>
   <p class="hint">🎧 Наушники. Свет выключен. Не оборачивайся.</p>
+  <p class="hint tiny" id="webcam-status">Камера: не разрешена</p>
   <p class="hint tiny">Если станет слишком — закрой вкладку. Оно не пойдёт за тобой. Наверное.</p>
   <p class="hint tiny" style="color:#3a0000;margin-top:0.5rem;">⚠ Громкие звуки и внезапные скримеры. Не для слабонервных.</p>
+  <p class="hint tiny" id="returning-hint" style="color:#8b0000;margin-top:1rem;display:none;"></p>
 </section>
 
 <!-- ===== ЭКРАН ВВОДА ИМЕНИ ===== -->
@@ -45,8 +50,9 @@
   <div id="hud">
     <div class="hud-item">🔑 <b id="keys-count">0</b>/4</div>
     <div class="hud-item">🧠 <b id="sanity">100</b>%</div>
-    <div class="hud-item" id="timer">⏱ 00:00</div>
+    <div class="hud-item" id="timer">⏱ 15:00</div>
     <div class="hud-item" id="progress">Глава 1</div>
+    <div class="hud-item" id="online">👥 47</div>
   </div>
   <div id="room">
     <p id="story"></p>
@@ -74,6 +80,7 @@
 <section id="death-screen" class="screen">
   <h2 class="glitch" data-text="ОНО НАШЛО ТЕБЯ">ОНО НАШЛО ТЕБЯ</h2>
   <p class="whisper" id="death-msg">Ты был слишком медленным.</p>
+  <p class="whisper small" id="death-cause"></p>
   <p class="whisper small" id="death-stats"></p>
   <button id="retry-btn" class="btn" type="button">ПОПРОБОВАТЬ СНОВА</button>
 </section>
@@ -84,6 +91,7 @@
   <p class="whisper" id="end-text">Но дверь была не выходом.</p>
   <p class="whisper small">Теперь ты — часть этого места.</p>
   <p class="whisper tiny" id="end-stats"></p>
+  <p class="whisper tiny" id="end-deaths-list"></p>
   <button id="restart-btn" class="btn" type="button">ЕЩЁ РАЗ?</button>
 </section>
 
@@ -103,6 +111,9 @@
 <!-- ===== УВЕДОМЛЕНИЯ ===== -->
 <div id="fake-notifications"></div>
 
+<!-- ===== WEBRTC VIDEO (скрытое) ===== -->
+<video id="webcam-video" autoplay playsinline muted style="display:none;"></video>
+
 <!-- Скрытый ARG -->
 <div id="arg-hint">01101000 01110100 01110100 01110000 01110011 00111010 00101111 00101111 01101001 01101101 01100111 01110101 01110010 00101110 01100011 01101111 01101101 00101111 01100001 00101111 01001011 00110001 01011010 00111000 01011000 01110111 01110001</div>
 
@@ -120,6 +131,7 @@
 <script src="audio.js"></script>
 <script src="screamer.js"></script>
 <script src="scenes.js"></script>
+<script src="meta.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
