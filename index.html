@@ -17,6 +17,7 @@
 <div id="scanlines"></div>
 <div id="blood-cursor"></div>
 <div id="flash"></div>
+<div id="red-pulse"></div>
 
 <!-- ===== СТАРТОВЫЙ ЭКРАН ===== -->
 <section id="start-screen" class="screen active">
@@ -27,7 +28,8 @@
     <button id="fullscreen-btn" class="btn btn-small">⛶ ПОЛНЫЙ ЭКРАН</button>
   </div>
   <p class="hint">🎧 Наушники. Свет выключен. Не оборачивайся.</p>
-  <p class="hint tiny">Если станет слишком — просто закрой вкладку. Оно не пойдёт за тобой. Наверное.</p>
+  <p class="hint tiny">Если станет слишком — закрой вкладку. Оно не пойдёт за тобой. Наверное.</p>
+  <p class="hint tiny" style="color:#3a0000;margin-top:0.5rem;">⚠ Громкие звуки и внезапные скримеры. Не для слабонервных.</p>
 </section>
 
 <!-- ===== ЭКРАН ВВОДА ИМЕНИ ===== -->
@@ -89,6 +91,7 @@
 <div id="pause-menu" class="hidden">
   <div class="pause-box">
     <h2>ПАУЗА</h2>
+    <p class="whisper small" id="pause-flavor">Оно тоже остановилось. Но не надолго.</p>
     <button id="resume-btn" class="btn">ПРОДОЛЖИТЬ</button>
     <button id="save-btn" class="btn">💾 СОХРАНИТЬ</button>
     <button id="load-btn" class="btn">📂 ЗАГРУЗИТЬ</button>
@@ -102,6 +105,18 @@
 
 <!-- Скрытый ARG -->
 <div id="arg-hint">01101000 01110100 01110100 01110000 01110011 00111010 00101111 00101111 01101001 01101101 01100111 01110101 01110010 00101110 01100011 01101111 01101101 00101111 01100001 00101111 01001011 00110001 01011010 00111000 01011000 01110111 01110001</div>
+
+<!-- ===== РЕАЛЬНЫЕ ЗВУКИ ===== -->
+<audio id="ambient-audio" loop preload="auto">
+  <source src="assets/ambient.mp3" type="audio/mpeg">
+</audio>
+<audio id="scream-audio" preload="auto">
+  <source src="assets/scream.mp3" type="audio/mpeg">
+</audio>
+<!-- Второй канал для двойного скримера -->
+<audio id="scream-audio-2" preload="auto">
+  <source src="assets/scream.mp3" type="audio/mpeg">
+</audio>
 
 <script src="audio.js"></script>
 <script src="screamer.js"></script>

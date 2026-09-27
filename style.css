@@ -16,26 +16,26 @@ html, body {
 #noise {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 100;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
-  animation: noiseShift 0.15s steps(3) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+  animation: noiseShift 0.12s steps(3) infinite;
   mix-blend-mode: overlay;
 }
 @keyframes noiseShift {
   0% { transform: translate(0,0); }
-  33% { transform: translate(-1%,1%); }
-  66% { transform: translate(1%,-1%); }
+  33% { transform: translate(-1.2%,1%); }
+  66% { transform: translate(1%,-1.2%); }
   100% { transform: translate(-1%,-1%); }
 }
 
 /* ===== ВИНЬЕТКА ===== */
 #vignette {
   position: fixed; inset: 0; pointer-events: none; z-index: 99;
-  background: radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.7) 60%, #000 100%);
+  background: radial-gradient(ellipse at center, transparent 15%, rgba(0,0,0,0.75) 55%, #000 100%);
   animation: vignettePulse 4s ease-in-out infinite;
 }
 @keyframes vignettePulse {
   0%,100% { opacity: 1; }
-  50% { opacity: 0.82; }
+  50% { opacity: 0.78; }
 }
 
 /* ===== СКАНЛАЙНЫ ===== */
@@ -45,10 +45,28 @@ html, body {
     to bottom,
     transparent 0px,
     transparent 2px,
-    rgba(0,0,0,0.15) 3px,
-    rgba(0,0,0,0.15) 4px
+    rgba(0,0,0,0.18) 3px,
+    rgba(0,0,0,0.18) 4px
   );
-  opacity: 0.4;
+  opacity: 0.45;
+}
+
+/* ===== КРАСНАЯ ПУЛЬСАЦИЯ (при низком рассудке) ===== */
+#red-pulse {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 98;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(139,0,0,0.4) 100%);
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+body.intrusion #red-pulse {
+  opacity: 1;
+  animation: redPulse 1.8s ease-in-out infinite;
+}
+@keyframes redPulse {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 /* ===== КРОВАВЫЙ КУРСОР ===== */
@@ -56,10 +74,9 @@ html, body {
   position: fixed; top: 0; left: 0;
   width: 50px; height: 50px;
   pointer-events: none; z-index: 998;
-  background: radial-gradient(circle, rgba(139,0,0,0.5) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(139,0,0,0.6) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   mix-blend-mode: multiply;
-  transition: width 0.2s, height 0.2s;
 }
 
 /* ===== FLASH ===== */
@@ -69,9 +86,10 @@ html, body {
   z-index: 9998;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.08s;
+  transition: opacity 0.06s;
 }
 #flash.active { opacity: 1; }
+#flash.red { background: #8b0000; }
 
 /* ===== ЭКРАНЫ ===== */
 .screen {
@@ -237,7 +255,7 @@ h1, h2 {
   display: flex;
   justify-content: space-between;
   padding: 15px 25px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.9), transparent);
+  background: linear-gradient(180deg, rgba(0,0,0,0.95), transparent);
   z-index: 50;
   font-size: 0.85rem;
   color: #666;
@@ -245,6 +263,11 @@ h1, h2 {
   gap: 10px;
 }
 .hud-item b { color: #8b0000; }
+.hud-item.danger b { color: #f00; animation: blink 0.5s infinite; }
+@keyframes blink {
+  0%,50% { opacity: 1; }
+  51%,100% { opacity: 0.3; }
+}
 
 #room {
   width: 100%;
@@ -269,10 +292,6 @@ h1, h2 {
   content: '▌';
   color: #8b0000;
   animation: blink 0.8s infinite;
-}
-@keyframes blink {
-  0%,50% { opacity: 1; }
-  51%,100% { opacity: 0; }
 }
 
 #choices {
@@ -352,7 +371,7 @@ h1, h2 {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: shake 0.08s infinite;
+  animation: shake 0.07s infinite;
 }
 #screamer.hidden { display: none; }
 #screamer-content {
@@ -368,37 +387,37 @@ h1, h2 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  animation: screamerZoom 0.4s ease-out;
+  animation: screamerZoom 0.35s ease-out;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 @keyframes screamerZoom {
-  0% { transform: scale(1.3); filter: brightness(2) contrast(2); }
-  100% { transform: scale(1); filter: brightness(1) contrast(1); }
+  0% { transform: scale(1.5); filter: brightness(2.5) contrast(2) hue-rotate(-10deg); }
+  100% { transform: scale(1); filter: brightness(1) contrast(1.1); }
 }
 @keyframes shake {
   0% { transform: translate(0,0) rotate(0); }
-  25% { transform: translate(-12px, 6px) rotate(-0.5deg); }
-  50% { transform: translate(12px, -6px) rotate(0.5deg); }
-  75% { transform: translate(-6px, -12px) rotate(-0.3deg); }
-  100% { transform: translate(6px, 12px) rotate(0.3deg); }
+  25% { transform: translate(-14px, 7px) rotate(-0.6deg); }
+  50% { transform: translate(14px, -7px) rotate(0.6deg); }
+  75% { transform: translate(-7px, -14px) rotate(-0.4deg); }
+  100% { transform: translate(7px, 14px) rotate(0.4deg); }
 }
-
-/* Девочка — по центру, с прозрачным фоном */
 #screamer-content img.girl {
   object-fit: contain;
-  filter: contrast(1.3) saturate(1.2);
-  animation: girlAppear 0.6s ease-out;
+  filter: contrast(1.4) saturate(1.3) brightness(0.9);
+  animation: girlAppear 0.5s ease-out;
 }
 @keyframes girlAppear {
-  0% { transform: scale(0.3); opacity: 0; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(0.2) rotate(-15deg); opacity: 0; filter: brightness(3); }
+  50% { transform: scale(1.15) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
 /* ===== МЕНЮ ПАУЗЫ ===== */
 #pause-menu {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.95);
+  background: rgba(0,0,0,0.96);
   z-index: 500;
   display: flex;
   align-items: center;
@@ -438,6 +457,11 @@ h1, h2 {
   backdrop-filter: blur(5px);
 }
 .notif .title { color: #8b0000; font-weight: bold; margin-bottom: 4px; }
+.notif.red { border-color: #f00; animation: notifIn 0.3s ease-out, notifRed 0.4s 0.3s; }
+@keyframes notifRed {
+  0%,100% { background: rgba(20,20,20,0.95); }
+  50% { background: rgba(80,0,0,0.95); }
+}
 @keyframes notifIn {
   from { transform: translateX(120%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
@@ -447,32 +471,32 @@ h1, h2 {
 .shadow-pass {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.92);
+  background: rgba(0,0,0,0.95);
   z-index: 500;
   pointer-events: none;
-  animation: shadowPass 1.5s forwards;
+  animation: shadowPass 1.4s forwards;
 }
 @keyframes shadowPass {
   0% { opacity: 0; }
-  50% { opacity: 1; }
+  40% { opacity: 1; }
   100% { opacity: 0; }
 }
 
 .silhouette {
   position: fixed;
   bottom: 0;
-  width: 150px;
-  height: 400px;
+  width: 160px;
+  height: 420px;
   background: #000;
-  filter: blur(4px);
+  filter: blur(5px) contrast(1.3);
   z-index: 200;
   pointer-events: none;
   animation: walk 4s linear forwards;
   border-radius: 50% 50% 0 0 / 30% 30% 0 0;
 }
 @keyframes walk {
-  from { transform: translateX(-200px); opacity: 0.95; }
-  to { transform: translateX(calc(100vw + 200px)); opacity: 0.95; }
+  from { transform: translateX(-220px); opacity: 0.95; }
+  to { transform: translateX(calc(100vw + 220px)); opacity: 0.95; }
 }
 
 .blood-drop {
@@ -490,8 +514,42 @@ h1, h2 {
   to { transform: translateY(100vh); opacity: 0; }
 }
 
-body.intrusion #vignette {
-  background: radial-gradient(ellipse at center, rgba(139,0,0,0.15) 20%, #000 100%);
+/* ===== ГАЛЛЮЦИНАЦИИ ===== */
+.hallucination-text {
+  position: fixed;
+  color: #8b0000;
+  font-size: 2.5rem;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  z-index: 990;
+  pointer-events: none;
+  text-shadow: 0 0 20px #8b0000, 0 0 40px #4a0000;
+  animation: halluIn 0.15s, halluOut 0.3s 1.5s forwards;
+  letter-spacing: 5px;
+}
+@keyframes halluIn {
+  0% { opacity: 0; transform: scale(1.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes halluOut {
+  to { opacity: 0; transform: scale(0.8); }
+}
+
+/* ===== ДРОЖАНИЕ ЭКРАНА ===== */
+body.trembling {
+  animation: tremble 0.05s infinite;
+}
+@keyframes tremble {
+  0% { transform: translate(0,0); }
+  25% { transform: translate(-2px,1px); }
+  50% { transform: translate(2px,-1px); }
+  75% { transform: translate(-1px,-2px); }
+  100% { transform: translate(1px,2px); }
+}
+
+/* ===== ИСКАЖЕНИЕ ЦВЕТА ===== */
+body.inverted {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* ===== ARG ===== */
@@ -518,4 +576,5 @@ body.intrusion #vignette {
   #fake-notifications { top: auto; bottom: 80px; right: 10px; }
   .notif { max-width: 250px; font-size: 0.75rem; }
   #name-input { font-size: 1.2rem; }
+  .hallucination-text { font-size: 1.8rem; }
 }
