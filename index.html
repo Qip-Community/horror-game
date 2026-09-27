@@ -3,58 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>██████</title>
+<meta name="theme-color" content="#000000">
+<title>.</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23000'/><circle cx='35' cy='40' r='5' fill='%23f00'/><circle cx='65' cy='40' r='5' fill='%23f00'/><path d='M30 70 Q50 85 70 70' stroke='%23f00' stroke-width='3' fill='none'/></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- Слой шума -->
 <div id="noise"></div>
 <div id="vignette"></div>
+<div id="scanlines"></div>
+<div id="blood-cursor"></div>
 
-<!-- Стартовый экран -->
+<!-- ===== СТАРТОВЫЙ ЭКРАН ===== -->
 <section id="start-screen" class="screen active">
-  <h1 class="glitch" data-text="ТЫ НЕ ДОЛЖЕН БЫЛ ЭТО ОТКРЫВАТЬ">ТЫ НЕ ДОЛЖЕН БЫЛ ЭТО ОТКРЫВАТЬ</h1>
-  <p class="whisper">Оно уже знает, что ты здесь...</p>
-  <button id="start-btn" class="btn">НАЧАТЬ</button>
-  <p class="hint">🎧 Надень наушники. Выключи свет. Не оборачивайся.</p>
+  <h1 class="glitch" data-text="ОНО ЗНАЕТ ТВОЁ ИМЯ">ОНО ЗНАЕТ ТВОЁ ИМЯ</h1>
+  <p class="whisper">Ты не должен был это открывать...</p>
+  <button id="start-btn" class="btn">ВОЙТИ</button>
+  <button id="fullscreen-btn" class="btn btn-small">⛶ ПОЛНЫЙ ЭКРАН (F11)</button>
+  <p class="hint">🎧 Наушники. Свет выключен. Двери закрыты. Не оборачивайся.</p>
+  <p class="hint tiny">Если что-то пойдёт не так — просто закрой вкладку.</p>
 </section>
 
-<!-- Игровой экран -->
+<!-- ===== ЭКРАН ВВОДА ИМЕНИ ===== -->
+<section id="name-screen" class="screen">
+  <h2>КАК ТЕБЯ ЗОВУТ?</h2>
+  <p class="whisper">Оно должно знать, кого искать.</p>
+  <input id="name-input" type="text" maxlength="20" placeholder="имя..." autocomplete="off">
+  <button id="name-btn" class="btn">ПОДТВЕРДИТЬ</button>
+</section>
+
+<!-- ===== ИГРОВОЙ ЭКРАН ===== -->
 <section id="game-screen" class="screen">
+  <div id="hud">
+    <div class="hud-item">🔑 <b id="keys-count">0</b>/4</div>
+    <div class="hud-item">🧠 <b id="sanity">100</b>%</div>
+    <div class="hud-item" id="timer">⏱ 00:00</div>
+    <div class="hud-item" id="progress">Глава 1</div>
+  </div>
   <div id="room">
     <p id="story"></p>
     <div id="choices"></div>
   </div>
-  <div id="inventory">
-    <span>Ключи: <b id="keys-count">0</b>/4</span>
+  <div id="inventory-bar">
+    <span class="inv-item" data-key="flashlight">🔦 Фонарик</span>
+    <span class="inv-item" data-key="mirror">🪞 Зеркало</span>
+    <span class="inv-item" data-key="note">📜 Записка</span>
+    <span class="inv-item" data-key="bone">🦴 Кость</span>
+    <span class="inv-item" data-key="key1">🔑</span>
+    <span class="inv-item" data-key="key2">🔑</span>
+    <span class="inv-item" data-key="key3">🔑</span>
+    <span class="inv-item" data-key="key4">🔑</span>
   </div>
 </section>
 
-<!-- Экран скримера -->
+<!-- ===== ЭКРАН СКРИМЕРА ===== -->
 <div id="screamer" class="hidden">
-  <img id="screamer-img" src="" alt="">
+  <div id="screamer-content"></div>
 </div>
 
-<!-- Экран смерти -->
+<!-- ===== ЭКРАН СМЕРТИ ===== -->
 <section id="death-screen" class="screen">
   <h2 class="glitch" data-text="ОНО НАШЛО ТЕБЯ">ОНО НАШЛО ТЕБЯ</h2>
+  <p class="whisper" id="death-msg">Ты был слишком медленным.</p>
+  <p class="whisper small" id="death-stats"></p>
   <button id="retry-btn" class="btn">ПОПРОБОВАТЬ СНОВА</button>
 </section>
 
-<!-- Финальный экран -->
+<!-- ===== ЭКРАН ПОБЕДЫ ===== -->
 <section id="end-screen" class="screen">
-  <h2>ТЫ ОТКРЫЛ ДВЕРЬ...</h2>
-  <p class="whisper">Но дверь была не выходом. Это был вход.</p>
-  <p class="whisper small">Теперь ты — часть этого места. Спасибо, что поиграл.</p>
+  <h2 id="end-title">ТЫ ОТКРЫЛ ДВЕРЬ...</h2>
+  <p class="whisper" id="end-text">Но дверь была не выходом.</p>
+  <p class="whisper small">Теперь ты — часть этого места.</p>
+  <p class="whisper tiny" id="end-stats"></p>
+  <button id="restart-btn" class="btn">ЕЩЁ РАЗ?</button>
 </section>
 
-<audio id="ambient" loop>
-  <source src="assets/ambient.mp3" type="audio/mpeg">
-</audio>
-<audio id="scream-sound">
-  <source src="assets/scream.mp3" type="audio/mpeg">
-</audio>
+<!-- ===== МЕНЮ ПАУЗЫ ===== -->
+<div id="pause-menu" class="hidden">
+  <div class="pause-box">
+    <h2>ПАУЗА</h2>
+    <button id="resume-btn" class="btn">ПРОДОЛЖИТЬ</button>
+    <button id="save-btn" class="btn">💾 СОХРАНИТЬ</button>
+    <button id="load-btn" class="btn">📂 ЗАГРУЗИТЬ</button>
+    <button id="quit-btn" class="btn">🚪 ВЫЙТИ</button>
+    <p class="hint tiny">ESC — закрыть меню</p>
+  </div>
+</div>
 
+<!-- ===== ФЕЙКОВЫЕ СИСТЕМНЫЕ УВЕДОМЛЕНИЯ ===== -->
+<div id="fake-notifications"></div>
+
+<!-- ===== СКРЫТЫЙ ARG ===== -->
+<div id="arg-hint" style="position:fixed;bottom:5px;left:5px;color:#111;font-size:8px;z-index:1;user-select:text;cursor:text;">
+  01101000 01110100 01110100 01110000 01110011 00111010 00101111 00101111 01101001 01101101 01100111 01110101 01110010 00101110 01100011 01101111 01101101 00101111 01100001 00101111 01001011 00110001 01011010 00111000 01011000 01110111 01110001
+</div>
+
+<script src="audio.js"></script>
+<script src="screamer.js"></script>
+<script src="scenes.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

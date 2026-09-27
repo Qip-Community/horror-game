@@ -1,295 +1,411 @@
-// ==== НАСТРОЙКИ ====
-// Замени ссылки на свои файлы в assets/
-// Если файлов нет — оставь как есть, будут работать только звуки с CDN (или уберём).
+// ============================================
+// HORROR QUEST — основная логика
+// ============================================
 
-const IMG_SCREAMERS = [
-  'https://i.imgur.com/8Q7yFjL.jpg', // пример, замени на свою
-  'https://i.imgur.com/2nCt3Sb.jpg',
-  'https://i.imgur.com/K1Z8Xwq.jpg'
-];
+const Game = {
+  state: {
+    name: 'Игрок',
+    keys: 0,
+    sanity: 100,
+    chapter: 1,
+    items: new Set(),
+    scene: 'intro',
+    startTime: 0,
+    deaths: 0
+  },
 
-// ==== СОСТОЯНИЕ ====
-let state = {
-  keys: 0,
-  scene: 'intro',
-  visited: new Set()
-};
+  els: {},
 
-// ==== DOM ====
-const $ = id => document.getElementById(id);
-const startScreen = $('start-screen');
-const gameScreen = $('game-screen');
-const deathScreen = $('death-screen');
-const endScreen = $('end-screen');
-const storyEl = $('story');
-const choicesEl = $('choices');
-const keysCountEl = $('keys-count');
-const screamerEl = $('screamer');
-const screamerImg = $('screamer-img');
-const ambient = $('ambient');
-const screamSound = $('scream-sound');
+  init() {
+    this.cacheEls();
+    this.bindEvents();
+    this.loadProgress();
+  },
 
-// ==== СКРИМЕР ====
-function triggerScreamer(duration = 800) {
-  const img = IMG_SCREAMERS[Math.floor(Math.random() * IMG_SCREAMERS.length)];
-  screamerImg.src = img;
-  screamerEl.classList.remove('hidden');
-  try {
-    screamSound.currentTime = 0;
-    screamSound.volume = 1;
-    screamSound.play().catch(()=>{});
-  } catch(e) {}
-  if (navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
-  setTimeout(() => {
-    screamerEl.classList.add('hidden');
-  }, duration);
-}
+  cacheEls() {
+    const $ = id => document.getElementById(id);
+    this.els = {
+      startScreen: $('start-screen'),
+      nameScreen: $('name-screen'),
+      gameScreen: $('game-screen'),
+      deathScreen: $('death-screen'),
+      endScreen: $('end-screen'),
+      story: $('story'),
+      choices: $('choices'),
+      keysCount: $('keys-count'),
+      sanity: $('sanity'),
+      timer: $('timer'),
+      progress: $('progress'),
+      nameInput: $('name-input'),
+      deathMsg: $('death-msg'),
+      deathStats: $('death-stats'),
+      endTitle: $('end-title'),
+      endText: $('end-text'),
+      endStats: $('end-stats'),
+      pauseMenu: $('pause-menu'),
+      inventoryBar: $('inventory-bar')
+    };
+  },
 
-// ==== ЭФФЕКТ ТЕНИ ====
-function shadowPass() {
-  const s = document.createElement('div');
-  s.className = 'shadow-pass';
-  document.body.appendChild(s);
-  setTimeout(() => s.remove(), 1500);
-}
+  bindEvents() {
+    document.getElementById('start-btn').onclick = () => this.startNameInput();
+    document.getElementById('fullscreen-btn').onclick = () => this.toggleFullscreen();
+    document.getElementById('name-btn').onclick = () => this.confirmName();
+    this.els.nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') this.confirmName();
+    });
+    document.getElementById('retry-btn').onclick = () => this.restart();
+    document.getElementById('restart-btn').onclick = () => this.restart();
+    document.getElementById('resume-btn').onclick = () => this.togglePause();
+    document.getElementById('save-btn').onclick = () => { this.saveProgress(); UI.notify('Сохранено', 'Прогресс сохранён.'); };
+    document.getElementById('load-btn').onclick = () => { this.loadProgress(true); };
+    document.getElementById('quit-btn').onclick = () => this.restart();
 
-// ==== ШЁПОТ ====
-const whispers = [
-  '...сзади...',
-  '...не оборачивайся...',
-  '...я вижу тебя...',
-  '...останься со мной...',
-  '...ты уже мёртв...',
-  '...ещё один шаг...'
-];
-function playWhisper() {
-  if ('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(whispers[Math.floor(Math.random()*whispers.length)]);
-    u.volume = 0.15;
-    u.rate = 0.6;
-    u.pitch = 0.2;
-    speechSynthesis.speak(u);
-  }
-}
+    // ESC — пауза
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && this.els.gameScreen.classList.contains('active')) {
+        this.togglePause();
+      }
+      if (e.key === 'F11') {
+        e.preventDefault();
+        this.toggleFullscreen();
+      }
+    });
 
-// ==== СЦЕНЫ ====
-const scenes = {
-  intro: {
-    text: 'Ты просыпаешься в тёмной комнате. Голова гудит. В углу мерцает свеча. На стене — четыре пустых крючка. Дверь заперта. За ней что-то дышит.',
-    choices: [
-      { text: 'Осмотреть комнату', next: 'inspect', action: () => shadowPass() },
-      { text: 'Крикнуть "Кто здесь?"', next: 'scream_back' },
-      { text: 'Подойти к двери', next: 'door' }
-    ]
-  },
-  scream_back: {
-    text: 'Тишина. А потом — из глубины комнаты, оттуда, где нет стен, отвечает голос. Твой собственный голос.',
-    choices: [
-      { text: 'Зажать уши', next: 'intro', action: () => triggerScreamer(600) },
-      { text: 'Осмотреть комнату', next: 'inspect' }
-    ]
-  },
-  door: {
-    text: 'Дверь ледяная. Ты прижимаешься ухом... и слышишь дыхание. Оно слышит тебя. Ручка медленно поворачивается С ТОЙ СТОРОНЫ.',
-    choices: [
-      { text: 'Отпрянуть', next: 'intro', action: () => { triggerScreamer(700); } },
-      { text: 'Открыть самому', next: 'death' }
-    ]
-  },
-  inspect: {
-    text: 'Под кроватью — старый сундук. Внутри — 3 предмета: ржавый ключ, зеркальце и записка. На записке кровью: "Не смотри в зеркало. Оно смотрит в ответ".',
-    choices: [
-      { text: 'Взять ключ', next: 'take_key' },
-      { text: 'Посмотреть в зеркало', next: 'mirror' },
-      { text: 'Прочитать записку полностью', next: 'note' }
-    ]
-  },
-  take_key: {
-    text: 'Ты берёшь ключ. По спине проходит холод. За стеной кто-то царапает. Ключ первый. Осталось ещё три.',
-    choices: [
-      { text: 'Идти дальше', next: 'hallway', action: () => addKey() }
-    ]
-  },
-  mirror: {
-    text: 'Ты смотришь в зеркало. Отражение смотрит НЕ туда, куда смотришь ты. Оно смотрит прямо на тебя. И улыбается.',
-    choices: [
-      { text: 'Разбить зеркало', next: 'death', action: () => triggerScreamer(900) },
-      { text: 'Отвернуться', next: 'intro' }
-    ]
-  },
-  note: {
-    text: 'Полный текст записки: "Ключи в: 1) под кроватью, 2) в ванной за занавеской, 3) в шкафу, 4) там, где ты не хочешь искать. Последний — в тебе самом."',
-    choices: [
-      { text: 'Взять ключ под кроватью', next: 'take_key' },
-      { text: 'Вернуться', next: 'inspect' }
-    ]
-  },
-  hallway: {
-    text: 'Ты выходишь в длинный коридор. Свет мигает. В конце — три двери: ВАННАЯ, ШКАФ, и дверь без таблички.',
-    choices: [
-      { text: 'Ванная', next: 'bathroom' },
-      { text: 'Шкаф', next: 'closet' },
-      { text: 'Дверь без таблички', next: 'unknown' }
-    ]
-  },
-  bathroom: {
-    text: 'Ванная. Занавеска задернута. Из-за неё капает что-то густое и тёмное. На полу — следы босых ног, ведущие ЗА занавеску.',
-    choices: [
-      { text: 'Отдёрнуть занавеску', next: 'bathroom_scream' },
-      { text: 'Найти ключ так', next: 'bathroom_key' }
-    ]
-  },
-  bathroom_scream: {
-    text: 'За занавеской — никого. Только зеркало. И в нём — ТЫ. Но ты стоишь здесь. Значит...',
-    choices: [
-      { text: '...', next: 'death', action: () => triggerScreamer(1000) }
-    ]
-  },
-  bathroom_key: {
-    text: 'Ты нащупываешь ключ на полке. Второй есть. Из слива ванны доносится булькающий смех.',
-    choices: [
-      { text: 'Уйти', next: 'hallway', action: () => addKey() }
-    ]
-  },
-  closet: {
-    text: 'Шкаф. Дверь приоткрыта. Внутри темнота гуще, чем должна быть. Оттуда пахнет землёй и старыми костями.',
-    choices: [
-      { text: 'Заглянуть внутрь', next: 'closet_scream' },
-      { text: 'Пошарить рукой', next: 'closet_key' }
-    ]
-  },
-  closet_scream: {
-    text: 'В темноте — лицо. Бледное. Глаза отсутствуют. Рот открывается, и оттуда выползает рука...',
-    choices: [
-      { text: 'Закрыть шкаф', next: 'hallway', action: () => triggerScreamer(1200) }
-    ]
-  },
-  closet_key: {
-    text: 'Ты хватаешь что-то холодное. Ключ. Третий. Что-то липкое касается твоей руки в ответ.',
-    choices: [
-      { text: 'Отдёрнуть руку', next: 'hallway', action: () => { addKey(); triggerScreamer(500); } }
-    ]
-  },
-  unknown: {
-    text: 'Дверь без таблички. За ней — та же комната, из которой ты начал. Но теперь в ней стоит человек. Спиной. Он не двигается.',
-    choices: [
-      { text: 'Окликнуть', next: 'unknown_scream' },
-      { text: 'Медленно отступить', next: 'hallway' }
-    ]
-  },
-  unknown_scream: {
-    text: 'Человек поворачивается. Это ты. Без лица. И оно открывает рот —',
-    choices: [
-      { text: '...', next: 'death', action: () => triggerScreamer(1000) }
-    ]
-  },
-  final_door: {
-    text: 'У тебя 4 ключа. Ты возвращаешься к главной двери. Дыхание за ней стало громче. Оно ждёт.',
-    choices: [
-      { text: 'Открыть дверь', next: 'ending' }
-    ]
-  },
-  ending: {
-    text: 'Дверь открывается. За ней — темнота. И в темноте — дверь. И ещё одна. И ещё. Ты делаешь шаг...',
-    choices: []
-  },
-  death: {
-    text: '',
-    choices: []
-  }
-};
+    // Курсор-кровь
+    document.addEventListener('mousemove', e => {
+      const cursor = document.getElementById('blood-cursor');
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+    });
 
-// ==== ЛОГИКА ====
-function addKey() {
-  state.keys++;
-  keysCountEl.textContent = state.keys;
-  if (state.keys === 3) {
-    // Скрытый 4-й ключ — «в тебе самом»
-    setTimeout(() => {
-      showScene({
-        text: 'Что-то шевелится у тебя в груди. Ты смотришь вниз. Из твоей грудной клетки торчит ржавый ключ. Последний.',
+    // Клик — звук
+    document.addEventListener('click', () => {
+      if (Audio.ctx) Audio.playClick();
+    });
+  },
+
+  async toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e) {
+      console.warn('Fullscreen failed', e);
+    }
+  },
+
+  startNameInput() {
+    Audio.init();
+    Audio.startAmbient();
+    this.els.startScreen.classList.remove('active');
+    this.els.nameScreen.classList.add('active');
+    setTimeout(() => this.els.nameInput.focus(), 100);
+  },
+
+  confirmName() {
+    const name = this.els.nameInput.value.trim() || 'Незнакомец';
+    this.state.name = name;
+    this.els.nameScreen.classList.remove('active');
+    this.els.gameScreen.classList.add('active');
+    this.state.startTime = Date.now();
+    this.startTimer();
+    this.startRandomEvents();
+    this.showScene(SCENES.intro);
+  },
+
+  startTimer() {
+    setInterval(() => {
+      const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
+      const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      this.els.timer.textContent = `⏱ ${m}:${s}`;
+      // Падение рассудка
+      if (elapsed > 0 && elapsed % 30 === 0) {
+        this.adjustSanity(-2);
+      }
+    }, 1000);
+  },
+
+  startRandomEvents() {
+    setInterval(() => {
+      if (!this.els.gameScreen.classList.contains('active')) return;
+      const r = Math.random();
+      if (r < 0.1) {
+        Effects.shadowPass();
+        Audio.playWhisper();
+      } else if (r < 0.15) {
+        Effects.silhouette();
+      } else if (r < 0.18) {
+        Effects.bloodRain();
+      } else if (r < 0.2) {
+        UI.fakeNotification();
+      } else if (r < 0.22) {
+        Audio.playHeartbeat();
+      }
+    }, 12000);
+  },
+
+  addKey() {
+    this.state.keys++;
+    this.els.keysCount.textContent = this.state.keys;
+    Audio.playThud();
+    if (this.state.keys === 3) {
+      setTimeout(() => this.showScene({
+        chapter: 3,
+        text: () => 'Что-то шевелится у тебя в груди. Ты смотришь вниз. Из твоей грудной клетки торчит ржавый ключ. Последний.',
         choices: [
           { text: 'Вытащить его', next: 'final_door',
-            action: () => { addKey(); triggerScreamer(1500); playWhisper(); } }
+            onChoose: () => {
+              this.state.keys++;
+              this.els.keysCount.textContent = this.state.keys;
+              Screamer.show(1800);
+              Audio.playWhisper();
+            } }
         ]
-      });
-    }, 1500);
-  }
-}
-
-function showScene(scene) {
-  storyEl.textContent = '';
-  choicesEl.innerHTML = '';
-  // печатающая машинка
-  let i = 0;
-  const txt = scene.text;
-  const speed = 25;
-  const timer = setInterval(() => {
-    storyEl.textContent += txt[i] || '';
-    i++;
-    if (i > txt.length) clearInterval(timer);
-    // случайные звуки при наборе
-    if (i === Math.floor(txt.length/2) && Math.random() < 0.4) playWhisper();
-  }, speed);
-
-  setTimeout(() => {
-    scene.choices.forEach(c => {
-      const btn = document.createElement('button');
-      btn.className = 'choice';
-      btn.textContent = c.text;
-      btn.onclick = () => {
-        if (c.action) c.action();
-        if (c.next === 'death') return die();
-        if (c.next === 'ending') return ending();
-        const nextScene = scenes[c.next];
-        if (nextScene) showScene(nextScene);
-      };
-      choicesEl.appendChild(btn);
-    });
-  }, txt.length * speed + 200);
-}
-
-function die() {
-  setTimeout(() => {
-    triggerScreamer(1500);
-    setTimeout(() => {
-      gameScreen.classList.remove('active');
-      deathScreen.classList.add('active');
-      ambient.pause();
-    }, 1200);
-  }, 300);
-}
-
-function ending() {
-  setTimeout(() => {
-    triggerScreamer(2000);
-    setTimeout(() => {
-      gameScreen.classList.remove('active');
-      endScreen.classList.add('active');
-      ambient.pause();
-    }, 1800);
-  }, 800);
-}
-
-// ==== СТАРТ ====
-$('start-btn').onclick = () => {
-  startScreen.classList.remove('active');
-  gameScreen.classList.add('active');
-  ambient.volume = 0.3;
-  ambient.play().catch(()=>{});
-  // случайные скримеры в фоне
-  setInterval(() => {
-    if (Math.random() < 0.15 && document.querySelector('.screen.active') === gameScreen) {
-      shadowPass();
-      if (Math.random() < 0.3) playWhisper();
+      }), 1500);
     }
-  }, 15000);
-  showScene(scenes.intro);
+  },
+
+  addItem(item) {
+    this.state.items.add(item);
+    const el = this.els.inventoryBar.querySelector(`[data-key="${item}"]`);
+    if (el) el.classList.add('owned');
+    UI.notify('Получено', this.itemName(item));
+    Audio.playClick();
+  },
+
+  itemName(item) {
+    const names = {
+      flashlight: 'Фонарик',
+      mirror: 'Зеркало',
+      note: 'Записка',
+      bone: 'Кость',
+      key1: 'Ключ 1', key2: 'Ключ 2', key3: 'Ключ 3', key4: 'Ключ 4'
+    };
+    return names[item] || item;
+  },
+
+  adjustSanity(delta) {
+    this.state.sanity = Math.max(0, Math.min(100, this.state.sanity + delta));
+    this.els.sanity.textContent = this.state.sanity;
+    if (this.state.sanity < 30) {
+      document.body.classList.add('intrusion');
+    } else {
+      document.body.classList.remove('intrusion');
+    }
+    if (this.state.sanity === 0) {
+      this.die('Твой разум не выдержал.');
+    }
+  },
+
+  showScene(scene) {
+    if (scene.death) return this.die(scene.msg);
+
+    const text = typeof scene.text === 'function' ? scene.text(this.state.name) : scene.text;
+
+    this.els.story.textContent = '';
+    this.els.choices.innerHTML = '';
+
+    if (scene.chapter) {
+      this.state.chapter = scene.chapter;
+      this.els.progress.textContent = `Глава ${scene.chapter}`;
+    }
+
+    // Эффект печатной машинки
+    let i = 0;
+    const speed = 22;
+    const timer = setInterval(() => {
+      this.els.story.textContent += text[i] || '';
+      i++;
+      if (i > text.length) clearInterval(timer);
+      if (i === Math.floor(text.length / 2) && Math.random() < 0.35) Audio.playWhisper();
+    }, speed);
+
+    setTimeout(() => {
+      scene.choices.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = c.text;
+        btn.style.animation = `notifIn 0.4s ease-out ${idx * 0.08}s backwards`;
+        btn.onclick = () => {
+          Audio.playStep();
+          if (c.onChoose) c.onChoose();
+          if (c.next === 'ending' || c.next === 'ending2' || c.next === 'ending3') {
+            return this.ending(c.next);
+          }
+          const nextScene = SCENES[c.next];
+          if (nextScene) {
+            if (nextScene.death) return this.die(nextScene.msg);
+            this.showScene(nextScene);
+          }
+        };
+        this.els.choices.appendChild(btn);
+      });
+    }, text.length * speed + 200);
+  },
+
+  die(msg) {
+    this.state.deaths++;
+    setTimeout(() => {
+      Screamer.show(1500);
+      Audio.playScreamer();
+      setTimeout(() => {
+        this.els.gameScreen.classList.remove('active');
+        this.els.deathScreen.classList.add('active');
+        this.els.deathMsg.textContent = msg || 'Ты был слишком медленным.';
+        this.els.deathStats.textContent = `Глава ${this.state.chapter} • Ключей: ${this.state.keys}/4 • Смертей: ${this.state.deaths}`;
+        Audio.stopAmbient();
+      }, 1300);
+    }, 400);
+  },
+
+  ending(type) {
+    setTimeout(() => {
+      Screamer.show(2000);
+      Audio.playScreamer();
+      setTimeout(() => {
+        this.els.gameScreen.classList.remove('active');
+        this.els.endScreen.classList.add('active');
+        const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = elapsed % 60;
+
+        if (type === 'ending') {
+          this.els.endTitle.textContent = 'ТЫ ОТКРЫЛ ДВЕРЬ...';
+          this.els.endText.textContent = `И вышел. Но что-то вышло вместе с тобой. Оно теперь живёт в тебе. И оно тоже знает твоё имя. ${this.state.name}.`;
+        } else if (type === 'ending3') {
+          this.els.endTitle.textContent = 'ТЫ ЗАБЫЛ СЕБЯ';
+          this.els.endText.textContent = 'Ты стал частью этого места. Частью тьмы. Частью того, что ждёт следующего игрока.';
+        }
+
+        this.els.endStats.textContent = `Время: ${m}:${String(s).padStart(2, '0')} • Ключей: ${this.state.keys} • Смертей: ${this.state.deaths}`;
+        Audio.stopAmbient();
+      }, 1800);
+    }, 800);
+  },
+
+  togglePause() {
+    this.els.pauseMenu.classList.toggle('hidden');
+  },
+
+  saveProgress() {
+    try {
+      localStorage.setItem('horror_save', JSON.stringify({
+        name: this.state.name,
+        keys: this.state.keys,
+        sanity: this.state.sanity,
+        chapter: this.state.chapter,
+        items: [...this.state.items],
+        scene: this.state.scene
+      }));
+    } catch (e) {}
+  },
+
+  loadProgress(showNotify) {
+    try {
+      const raw = localStorage.getItem('horror_save');
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      Object.assign(this.state, data);
+      this.state.items = new Set(data.items || []);
+      if (showNotify) {
+        this.els.keysCount.textContent = this.state.keys;
+        this.els.sanity.textContent = this.state.sanity;
+        this.els.progress.textContent = `Глава ${this.state.chapter}`;
+        UI.notify('Загружено', 'Прогресс восстановлен.');
+      }
+      return true;
+    } catch (e) { return false; }
+  },
+
+  restart() {
+    location.reload();
+  }
 };
 
-$('retry-btn').onclick = () => {
-  state.keys = 0;
-  keysCountEl.textContent = 0;
-  deathScreen.classList.remove('active');
-  startScreen.classList.add('active');
+// ============================================
+// ЭФФЕКТЫ
+// ============================================
+const Effects = {
+  shadowPass() {
+    const s = document.createElement('div');
+    s.className = 'shadow-pass';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 1500);
+  },
+
+  silhouette() {
+    const s = document.createElement('div');
+    s.className = 'silhouette';
+    s.style.left = Math.random() < 0.5 ? '0' : 'auto';
+    s.style.right = s.style.left === 'auto' ? '0' : 'auto';
+    if (s.style.right === '0') s.style.animationDirection = 'reverse';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 4000);
+    Audio.playWhisper();
+  },
+
+  bloodRain() {
+    for (let i = 0; i < 15; i++) {
+      setTimeout(() => {
+        const d = document.createElement('div');
+        d.className = 'blood-drop';
+        d.style.left = Math.random() * 100 + 'vw';
+        d.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        d.style.height = (10 + Math.random() * 25) + 'px';
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 3500);
+      }, i * 80);
+    }
+  }
 };
+
+// ============================================
+// UI
+// ============================================
+const UI = {
+  fakeMessages: [
+    { title: '⚠️ Внимание', text: 'Обнаружена попытка доступа к вашей камере.' },
+    { title: '📷 Камера', text: 'Приложение "ОНО" запрашивает доступ к вашей камере.' },
+    { title: '🎤 Микрофон', text: 'Кто-то слушает вас. Вы уверены?' },
+    { title: '📍 Геолокация', text: 'Ваше местоположение: неизвестно. Но оно знает.' },
+    { title: '🖥️ Экран', text: 'Кто-то смотрит на ваш экран прямо сейчас.' },
+    { title: '💀 Система', text: 'Ошибка 0xDEAD. Что-то пошло не так.' },
+    { title: '🔓 Доступ', text: 'Неизвестное устройство подключено к вашей сети.' },
+    { title: '⏱️ Время', text: 'Осталось не так много. Поспеши.' }
+  ],
+
+  notify(title, text) {
+    const box = document.getElementById('fake-notifications');
+    const n = document.createElement('div');
+    n.className = 'notif';
+    n.innerHTML = `<div class="title">${title}</div><div>${text}</div>`;
+    box.appendChild(n);
+    setTimeout(() => {
+      n.style.opacity = '0';
+      n.style.transform = 'translateX(120%)';
+      n.style.transition = 'all 0.4s';
+      setTimeout(() => n.remove(), 400);
+    }, 4000);
+  },
+
+  fakeNotification() {
+    const msg = this.fakeMessages[Math.floor(Math.random() * this.fakeMessages.length)];
+    this.notify(msg.title, msg.text);
+  }
+};
+
+// ============================================
+// СТАРТ
+// ============================================
+window.addEventListener('DOMContentLoaded', () => {
+  Game.init();
+
+  // Приветственное уведомление
+  setTimeout(() => UI.notify('Добро пожаловать', 'Не оборачивайся.'), 2000);
+  setTimeout(() => UI.notify('🔍 Сканирование', 'Поиск камеры...'), 6000);
+  setTimeout(() => UI.notify('✅ Найдено', 'Камера: активна.'), 8500);
+});
