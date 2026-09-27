@@ -24,8 +24,8 @@
   <h1 class="glitch" data-text="ОНО ЗНАЕТ ТВОЁ ИМЯ">ОНО ЗНАЕТ ТВОЁ ИМЯ</h1>
   <p class="whisper">Ты не должен был это открывать...</p>
   <div class="btn-group">
-    <button id="start-btn" class="btn">ВОЙТИ</button>
-    <button id="fullscreen-btn" class="btn btn-small">⛶ ПОЛНЫЙ ЭКРАН</button>
+    <button id="start-btn" class="btn" type="button">ВОЙТИ</button>
+    <button id="fullscreen-btn" class="btn btn-small" type="button">⛶ ПОЛНЫЙ ЭКРАН</button>
   </div>
   <p class="hint">🎧 Наушники. Свет выключен. Не оборачивайся.</p>
   <p class="hint tiny">Если станет слишком — закрой вкладку. Оно не пойдёт за тобой. Наверное.</p>
@@ -37,7 +37,7 @@
   <h2>КАК ТЕБЯ ЗОВУТ?</h2>
   <p class="whisper">Оно должно знать, кого искать.</p>
   <input id="name-input" type="text" maxlength="20" placeholder="имя..." autocomplete="off" spellcheck="false">
-  <button id="name-btn" class="btn">ПОДТВЕРДИТЬ</button>
+  <button id="name-btn" class="btn" type="button">ПОДТВЕРДИТЬ</button>
 </section>
 
 <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
@@ -75,7 +75,7 @@
   <h2 class="glitch" data-text="ОНО НАШЛО ТЕБЯ">ОНО НАШЛО ТЕБЯ</h2>
   <p class="whisper" id="death-msg">Ты был слишком медленным.</p>
   <p class="whisper small" id="death-stats"></p>
-  <button id="retry-btn" class="btn">ПОПРОБОВАТЬ СНОВА</button>
+  <button id="retry-btn" class="btn" type="button">ПОПРОБОВАТЬ СНОВА</button>
 </section>
 
 <!-- ===== ЭКРАН ПОБЕДЫ ===== -->
@@ -84,7 +84,7 @@
   <p class="whisper" id="end-text">Но дверь была не выходом.</p>
   <p class="whisper small">Теперь ты — часть этого места.</p>
   <p class="whisper tiny" id="end-stats"></p>
-  <button id="restart-btn" class="btn">ЕЩЁ РАЗ?</button>
+  <button id="restart-btn" class="btn" type="button">ЕЩЁ РАЗ?</button>
 </section>
 
 <!-- ===== МЕНЮ ПАУЗЫ ===== -->
@@ -92,10 +92,10 @@
   <div class="pause-box">
     <h2>ПАУЗА</h2>
     <p class="whisper small" id="pause-flavor">Оно тоже остановилось. Но не надолго.</p>
-    <button id="resume-btn" class="btn">ПРОДОЛЖИТЬ</button>
-    <button id="save-btn" class="btn">💾 СОХРАНИТЬ</button>
-    <button id="load-btn" class="btn">📂 ЗАГРУЗИТЬ</button>
-    <button id="quit-btn" class="btn">🚪 ВЫЙТИ</button>
+    <button id="resume-btn" class="btn" type="button">ПРОДОЛЖИТЬ</button>
+    <button id="save-btn" class="btn" type="button">💾 СОХРАНИТЬ</button>
+    <button id="load-btn" class="btn" type="button">📂 ЗАГРУЗИТЬ</button>
+    <button id="quit-btn" class="btn" type="button">🚪 ВЫЙТИ</button>
     <p class="hint tiny">ESC — закрыть меню</p>
   </div>
 </div>
@@ -113,7 +113,6 @@
 <audio id="scream-audio" preload="auto">
   <source src="assets/scream.mp3" type="audio/mpeg">
 </audio>
-<!-- Второй канал для двойного скримера -->
 <audio id="scream-audio-2" preload="auto">
   <source src="assets/scream.mp3" type="audio/mpeg">
 </audio>

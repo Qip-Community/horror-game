@@ -1,16 +1,15 @@
 // ============================================
-// Все сцены. 4 главы, 3 концовки, 15+ смертей.
+// Все сцены квеста
 // ============================================
 
 const SCENES = {
-  // ===== ГЛАВА 1: ПРОБУЖДЕНИЕ =====
   intro: {
     chapter: 1,
     text: (n) => `Ты просыпаешься на холодном полу. Голова раскалывается. Последнее, что помнишь — как ты открыл эту ссылку. В углу мерцает свеча. На стене — четыре пустых крючка. Дверь заперта. За ней что-то дышит. И оно знает твоё имя. ${n}.`,
     choices: [
-      { text: 'Осмотреть комнату', next: 'inspect', onChoose: () => { Effects.shadowPass(); Audio.playGrowl(); } },
+      { text: 'Осмотреть комнату', next: 'inspect', onChoose: () => { Effects.shadowPass(); GameAudio.playGrowl(); } },
       { text: 'Крикнуть "Кто здесь?"', next: 'scream_back' },
-      { text: 'Подойти к двери', next: 'door', onChoose: () => Audio.playCreak() },
+      { text: 'Подойти к двери', next: 'door', onChoose: () => GameAudio.playCreak() },
       { text: 'Проверить карманы', next: 'pockets' }
     ]
   },
@@ -29,7 +28,7 @@ const SCENES = {
     chapter: 1,
     text: (n) => `Тишина. А потом — из глубины комнаты, оттуда, где нет стен, отвечает голос. Твой собственный. "${n}... зачем ты это сделал?"`,
     choices: [
-      { text: 'Зажать уши', next: 'intro', onChoose: () => Screamer.mini() },
+      { text: 'Зажать уши', next: 'intro', onChoose: () => GameScreamer.mini() },
       { text: 'Спросить "Что сделать?"', next: 'scream_back2' },
       { text: 'Молчать', next: 'intro' }
     ]
@@ -40,7 +39,7 @@ const SCENES = {
     text: () => 'Голос смеётся. Смех идёт из твоей груди. Ты смотришь вниз — грудь цела. Но смех продолжается. Он становится громче.',
     choices: [
       { text: 'Бежать', next: 'inspect' },
-      { text: 'Кричать в ответ', next: 'death_heart', onChoose: () => Screamer.double(1400, 'smile') }
+      { text: 'Кричать в ответ', next: 'death_heart', onChoose: () => GameScreamer.double(1400, 'smile') }
     ]
   },
 
@@ -48,9 +47,9 @@ const SCENES = {
     chapter: 1,
     text: () => 'Дверь ледяная. Ты прижимаешься ухом... и слышишь дыхание. Оно слышит тебя. Ручка медленно поворачивается С ТОЙ СТОРОНЫ.',
     choices: [
-      { text: 'Отпрянуть', next: 'intro', onChoose: () => Screamer.mini() },
+      { text: 'Отпрянуть', next: 'intro', onChoose: () => GameScreamer.mini() },
       { text: 'Открыть самому', next: 'death_door' },
-      { text: 'Постучать', next: 'door_knock', onChoose: () => Audio.playKnock() }
+      { text: 'Постучать', next: 'door_knock', onChoose: () => GameAudio.playKnock() }
     ]
   },
 
@@ -58,7 +57,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'Ты стучишь. Три раза. Из-за двери — три раза в ответ. Потом ещё три. Потом ещё. Стук не прекращается. Он становится громче. СТУЧИТ УЖЕ ИЗНУТРИ ТВОЕЙ ГОЛОВЫ.',
     choices: [
-      { text: 'Упасть на пол', next: 'death_head', onChoose: () => Screamer.girlReveal() }
+      { text: 'Упасть на пол', next: 'death_head', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -66,7 +65,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'Под кроватью — старый сундук. Внутри — 3 предмета: ржавый ключ, зеркальце и записка. На записке кровью: "Не смотри в зеркало. Оно смотрит в ответ".',
     choices: [
-      { text: 'Взять ключ', next: 'take_key', onChoose: () => Audio.playClick() },
+      { text: 'Взять ключ', next: 'take_key', onChoose: () => GameAudio.playClick() },
       { text: 'Посмотреть в зеркало', next: 'mirror' },
       { text: 'Прочитать записку полностью', next: 'note' },
       { text: 'Осмотреть кровать', next: 'bed' },
@@ -78,7 +77,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'На стенах — обои. Ты присматриваешься. На обоях — узор. Но узор повторяется. И в каждом повторении — лицо. Одно и то же. Оно улыбается.',
     choices: [
-      { text: 'Закрыть глаза', next: 'inspect', onChoose: () => Screamer.mini() },
+      { text: 'Закрыть глаза', next: 'inspect', onChoose: () => GameScreamer.mini() },
       { text: 'Провести рукой по стене', next: 'walls_touch' }
     ]
   },
@@ -88,7 +87,7 @@ const SCENES = {
     text: () => 'Ты проводишь рукой. Обои мокрые. Ты подносишь руку к лицу. Это не вода. Это кровь. Свежая.',
     choices: [
       { text: 'Вытереть', next: 'inspect' },
-      { text: 'Понюхать', next: 'death_walls', onChoose: () => Screamer.show(1500, 'scream', { double: true }) }
+      { text: 'Понюхать', next: 'death_walls', onChoose: () => GameScreamer.show(1500, 'scream', { double: true }) }
     ]
   },
 
@@ -96,7 +95,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'Под матрасом — что-то твёрдое. Ты запускаешь руку. Пальцы касаются холодного. Это не ключ. Это... палец.',
     choices: [
-      { text: 'Отдёрнуть руку', next: 'inspect', onChoose: () => Screamer.mini() },
+      { text: 'Отдёрнуть руку', next: 'inspect', onChoose: () => GameScreamer.mini() },
       { text: 'Вытащить', next: 'finger' }
     ]
   },
@@ -131,7 +130,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'Ты смотришь в зеркало. Отражение смотрит НЕ туда, куда смотришь ты. Оно смотрит прямо на тебя. И улыбается. И поднимает руку. Ты — нет.',
     choices: [
-      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => Screamer.show(1200, 'smile', { double: true }) },
+      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => GameScreamer.show(1200, 'smile', { double: true }) },
       { text: 'Отвернуться', next: 'inspect' },
       { text: 'Помахать отражению', next: 'mirror_wave' }
     ]
@@ -141,21 +140,20 @@ const SCENES = {
     chapter: 1,
     text: () => 'Отражение машет в ответ. Но с задержкой. А потом — опережает тебя. Оно знает, что ты сделаешь раньше, чем ты сам. Оно улыбается шире.',
     choices: [
-      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => Screamer.double(1400, 'scream') },
+      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => GameScreamer.double(1400, 'scream') },
       { text: 'Уйти', next: 'inspect', onChoose: () => Game.addItem('mirror') }
     ]
   },
 
   note: {
     chapter: 1,
-    text: () => 'Полный текст записки: "Ключи в: 1) под кроватью, 2) в ванной за занавеской, 3) в шкафу, 4) там, где ты не хочешь искать. Последний — в тебе самом. Если услышишь шаги за спиной — не оборачивайся. Если увидишь своё отражение — не улыбайся. Если оно улыбнётся — БЕГИ. P.S. Оно знает, что ты читаешь эту записку. Прямо сейчас."',
+    text: () => 'Полный текст записки: "Ключи в: 1) под кроватью, 2) в ванной за занавеской, 3) в шкафу, 4) там, где ты не хочешь искать. Последний — в тебе самом. Если услышишь шаги за спиной — не оборачивайся. Если увидишь своё отражение — не улыбайся. Если оно улыбнётся — БЕГИ."',
     choices: [
       { text: 'Взять ключ под кроватью', next: 'take_key' },
-      { text: 'Запомнить', next: 'inspect', onChoose: () => { Audio.playWhisper(); } }
+      { text: 'Запомнить', next: 'inspect', onChoose: () => { GameAudio.playWhisper(); } }
     ]
   },
 
-  // ===== ГЛАВА 2: КОРИДОР =====
   hallway: {
     chapter: 2,
     text: () => 'Ты выходишь в длинный коридор. Свет мигает. В конце — три двери: ВАННАЯ, ШКАФ, и дверь без таблички. За спиной — шаги. Медленные. Приближающиеся.',
@@ -163,7 +161,7 @@ const SCENES = {
       { text: 'Ванная', next: 'bathroom' },
       { text: 'Шкаф', next: 'closet' },
       { text: 'Дверь без таблички', next: 'unknown' },
-      { text: 'ОБЕРНУТЬСЯ', next: 'death_behind', onChoose: () => Screamer.girlReveal() }
+      { text: 'ОБЕРНУТЬСЯ', next: 'death_behind', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -191,8 +189,8 @@ const SCENES = {
     chapter: 2,
     text: () => 'Отражение открывает рот. Оно что-то говорит. Ты читаешь по губам: "ОБЕРНИСЬ".',
     choices: [
-      { text: 'Обернуться', next: 'death_mirror3', onChoose: () => Screamer.double(1500, 'scream') },
-      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => Screamer.double(1500, 'smile') }
+      { text: 'Обернуться', next: 'death_mirror3', onChoose: () => GameScreamer.double(1500, 'scream') },
+      { text: 'Разбить зеркало', next: 'death_mirror', onChoose: () => GameScreamer.double(1500, 'smile') }
     ]
   },
 
@@ -200,8 +198,8 @@ const SCENES = {
     chapter: 2,
     text: () => 'Ты наклоняешься к сливу. Оттуда смотрит глаз. Моргает. Он знает, что ты его видишь.',
     choices: [
-      { text: 'Отпрянуть', next: 'bathroom', onChoose: () => Screamer.mini() },
-      { text: 'Посмотреть ещё', next: 'death_drain', onChoose: () => Screamer.show(1400, 'scream', { double: true }) }
+      { text: 'Отпрянуть', next: 'bathroom', onChoose: () => GameScreamer.mini() },
+      { text: 'Посмотреть ещё', next: 'death_drain', onChoose: () => GameScreamer.show(1400, 'scream', { double: true }) }
     ]
   },
 
@@ -209,7 +207,7 @@ const SCENES = {
     chapter: 2,
     text: () => 'За занавеской — никого. Только зеркало. И в нём — ТЫ. Но ты стоишь здесь. Значит...',
     choices: [
-      { text: '...', next: 'death_mirror2', onChoose: () => Screamer.girlReveal() }
+      { text: '...', next: 'death_mirror2', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -228,7 +226,7 @@ const SCENES = {
       { text: 'Заглянуть внутрь', next: 'closet_scream' },
       { text: 'Пошарить рукой', next: 'closet_key' },
       { text: 'Закрыть и уйти', next: 'hallway' },
-      { text: 'Постучать по дверце', next: 'closet_knock', onChoose: () => Audio.playKnock() }
+      { text: 'Постучать по дверце', next: 'closet_knock', onChoose: () => GameAudio.playKnock() }
     ]
   },
 
@@ -236,8 +234,8 @@ const SCENES = {
     chapter: 2,
     text: () => 'Ты стучишь. Изнутри стучат в ответ. Три раза. Медленно. Потом ещё три. Быстрее. Потом стук превращается в царапанье. Дверца начинает дрожать.',
     choices: [
-      { text: 'Держать дверцу', next: 'death_closet', onChoose: () => Screamer.double(1600, 'girl') },
-      { text: 'Отойти', next: 'hallway', onChoose: () => { Effects.silhouette(); Screamer.mini(); } }
+      { text: 'Держать дверцу', next: 'death_closet', onChoose: () => GameScreamer.double(1600, 'girl') },
+      { text: 'Отойти', next: 'hallway', onChoose: () => { Effects.silhouette(); GameScreamer.mini(); } }
     ]
   },
 
@@ -245,7 +243,7 @@ const SCENES = {
     chapter: 2,
     text: () => 'В темноте — лицо. Бледное. Глаза отсутствуют. Рот открывается, и оттуда выползает рука...',
     choices: [
-      { text: 'Закрыть шкаф', next: 'hallway', onChoose: () => Screamer.show(1100, 'smile', { double: true }) }
+      { text: 'Закрыть шкаф', next: 'hallway', onChoose: () => GameScreamer.show(1100, 'smile', { double: true }) }
     ]
   },
 
@@ -253,7 +251,7 @@ const SCENES = {
     chapter: 2,
     text: () => 'Ты хватаешь что-то холодное. Ключ. Третий. Что-то липкое касается твоей руки в ответ.',
     choices: [
-      { text: 'Отдёрнуть руку', next: 'hallway', onChoose: () => { Game.addKey(); Screamer.mini(); } }
+      { text: 'Отдёрнуть руку', next: 'hallway', onChoose: () => { Game.addKey(); GameScreamer.mini(); } }
     ]
   },
 
@@ -272,7 +270,7 @@ const SCENES = {
     chapter: 2,
     text: () => 'Ты бросаешь ключ. Он проходит СКВОЗЬ человека. Человек медленно поворачивается. У него нет лица. Только рот. Рот открывается.',
     choices: [
-      { text: '...', next: 'death_face', onChoose: () => Screamer.girlReveal() }
+      { text: '...', next: 'death_face', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -280,7 +278,7 @@ const SCENES = {
     chapter: 2,
     text: () => 'Ты подходишь. Человек поворачивается. Это ты. Без лица. И оно открывает рот —',
     choices: [
-      { text: '...', next: 'death_face', onChoose: () => Screamer.girlReveal() }
+      { text: '...', next: 'death_face', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -288,17 +286,16 @@ const SCENES = {
     chapter: 2,
     text: () => 'Человек не реагирует. Ты подходишь ближе. Замечаешь — у него нет ног. Он просто висит в воздухе. И медленно поворачивается.',
     choices: [
-      { text: 'Бежать', next: 'hallway', onChoose: () => { Effects.silhouette(); Screamer.mini(); Audio.playGrowl(); } }
+      { text: 'Бежать', next: 'hallway', onChoose: () => { Effects.silhouette(); GameScreamer.mini(); GameAudio.playGrowl(); } }
     ]
   },
 
-  // ===== ГЛАВА 3: ПОДВАЛ =====
   tunnel: {
     chapter: 3,
     text: () => 'Узкий туннель. Ты ползёшь. Стены влажные. Что-то касается твоей ноги. Ты не оборачиваешься. Впереди — свет.',
     choices: [
       { text: 'Ползти дальше', next: 'basement' },
-      { text: 'Обернуться', next: 'death_tunnel', onChoose: () => Screamer.double(1500, 'scream') }
+      { text: 'Обернуться', next: 'death_tunnel', onChoose: () => GameScreamer.double(1500, 'scream') }
     ]
   },
 
@@ -317,8 +314,8 @@ const SCENES = {
     chapter: 3,
     text: () => 'Пол усыпан костями. Мелкими. Детскими. Ты наступаешь — они хрустят. Хруст раздаётся не только под твоими ногами. Он раздаётся везде.',
     choices: [
-      { text: 'Замереть', next: 'basement', onChoose: () => Audio.playWhisper() },
-      { text: 'Бежать', next: 'death_bones', onChoose: () => Screamer.show(1400, 'smile', { double: true }) }
+      { text: 'Замереть', next: 'basement', onChoose: () => GameAudio.playWhisper() },
+      { text: 'Бежать', next: 'death_bones', onChoose: () => GameScreamer.show(1400, 'smile', { double: true }) }
     ]
   },
 
@@ -337,7 +334,7 @@ const SCENES = {
     chapter: 3,
     text: () => 'Ты начинаешь спускаться. Верёвка скользит в руках. Ты смотришь вверх. Оттуда на тебя смотрит кто-то. У него твоё лицо. И оно улыбается.',
     choices: [
-      { text: 'Отпустить верёвку', next: 'death_well3', onChoose: () => Screamer.double(1800, 'smile') },
+      { text: 'Отпустить верёвку', next: 'death_well3', onChoose: () => GameScreamer.double(1800, 'smile') },
       { text: 'Забраться обратно', next: 'well' }
     ]
   },
@@ -346,7 +343,7 @@ const SCENES = {
     chapter: 3,
     text: () => 'Ты бросаешь камень. Тишина. Долгая. Потом — звук удара. И голос снизу: "Спасибо. Теперь я знаю, где ты." Голос — твой.',
     choices: [
-      { text: 'Бежать', next: 'death_well', onChoose: () => Screamer.girlReveal() }
+      { text: 'Бежать', next: 'death_well', onChoose: () => GameScreamer.girlReveal() }
     ]
   },
 
@@ -355,7 +352,7 @@ const SCENES = {
     text: (n) => `Ты кричишь. Из колодца отвечает твой голос: "${n}, не кричи. Я сплю."`,
     choices: [
       { text: 'Замолчать', next: 'basement' },
-      { text: 'Крикнуть снова', next: 'death_well2', onChoose: () => Screamer.double(1500, 'scream') }
+      { text: 'Крикнуть снова', next: 'death_well2', onChoose: () => GameScreamer.double(1500, 'scream') }
     ]
   },
 
@@ -363,7 +360,7 @@ const SCENES = {
     chapter: 3,
     text: () => 'На стенах — рисунки. Детские. На них — дом. Ты. Оно. И слово, написанное много раз: "БЕГИ".',
     choices: [
-      { text: 'Прочитать вслух', next: 'death_ritual', onChoose: () => { Screamer.girlReveal(); Audio.playWhisper(); } },
+      { text: 'Прочитать вслух', next: 'death_ritual', onChoose: () => { GameScreamer.girlReveal(); GameAudio.playWhisper(); } },
       { text: 'Уйти', next: 'basement' },
       { text: 'Стереть рисунки', next: 'basement_walls_erase' }
     ]
@@ -374,7 +371,7 @@ const SCENES = {
     text: () => 'Ты стираешь рисунки. Под ними — ещё рисунки. И ещё. И ещё. Они уходят вглубь стены. Они бесконечны. И на каждом — твоё лицо, которое становится всё более искажённым.',
     choices: [
       { text: 'Прекратить', next: 'basement' },
-      { text: 'Смотреть дальше', next: 'death_erase', onChoose: () => Screamer.double(1600, 'scream') }
+      { text: 'Смотреть дальше', next: 'death_erase', onChoose: () => GameScreamer.double(1600, 'scream') }
     ]
   },
 
@@ -387,7 +384,6 @@ const SCENES = {
     ]
   },
 
-  // ===== ФИНАЛЬНАЯ ЧАСТЬ =====
   final_door: {
     chapter: 4,
     text: (n) => `У тебя 4 ключа. Ты возвращаешься к главной двери. Дыхание за ней стало громче. Оно ждёт. Оно знает, что ты уже не выйдешь. Не таким, как вошёл. ${n}.`,
@@ -405,7 +401,7 @@ const SCENES = {
 
   ending2: {
     chapter: 4,
-    text: () => 'Ты не открываешь дверь. Ты садишься на пол. Ждёшь. Проходит час. Два. Ты слышишь дыхание за дверью. Оно ждёт. Оно терпеливее тебя. И оно начинает напевать твоё имя.',
+    text: () => 'Ты не открываешь дверь. Ты садишься на пол. Ждёшь. Проходит час. Два. Ты слышишь дыхание за дверью. Оно ждёт. Оно терпеливее тебя.',
     choices: [
       { text: 'Открыть', next: 'ending' },
       { text: 'Ждать дальше', next: 'ending3' }
@@ -414,11 +410,10 @@ const SCENES = {
 
   ending3: {
     chapter: 4,
-    text: (n) => `Ты ждёшь. И постепенно понимаешь: ты уже не помнишь, как тебя зовут. ${n}? Или нет? Ты не помнишь. Ты — часть этого места. Ты всегда был здесь. И ты всегда будешь.`,
+    text: (n) => `Ты ждёшь. И постепенно понимаешь: ты уже не помнишь, как тебя зовут. ${n}? Или нет? Ты не помнишь. Ты — часть этого места. Ты всегда был здесь.`,
     choices: []
   },
 
-  // ===== СМЕРТИ =====
   death_door: { death: true, msg: 'Дверь открыл кто-то другой. И это был не человек.' },
   death_heart: { death: true, msg: 'Слишком много шума. Оно нашло тебя.' },
   death_head: { death: true, msg: 'Стук вошёл в тебя. И остался там.' },

@@ -12,7 +12,6 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== ШУМ ===== */
 #noise {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 100;
@@ -27,7 +26,6 @@ html, body {
   100% { transform: translate(-1%,-1%); }
 }
 
-/* ===== ВИНЬЕТКА ===== */
 #vignette {
   position: fixed; inset: 0; pointer-events: none; z-index: 99;
   background: radial-gradient(ellipse at center, transparent 15%, rgba(0,0,0,0.75) 55%, #000 100%);
@@ -38,7 +36,6 @@ html, body {
   50% { opacity: 0.78; }
 }
 
-/* ===== СКАНЛАЙНЫ ===== */
 #scanlines {
   position: fixed; inset: 0; pointer-events: none; z-index: 101;
   background: repeating-linear-gradient(
@@ -51,7 +48,6 @@ html, body {
   opacity: 0.45;
 }
 
-/* ===== КРАСНАЯ ПУЛЬСАЦИЯ (при низком рассудке) ===== */
 #red-pulse {
   position: fixed; inset: 0;
   pointer-events: none;
@@ -69,7 +65,6 @@ body.intrusion #red-pulse {
   50% { opacity: 1; }
 }
 
-/* ===== КРОВАВЫЙ КУРСОР ===== */
 #blood-cursor {
   position: fixed; top: 0; left: 0;
   width: 50px; height: 50px;
@@ -79,7 +74,6 @@ body.intrusion #red-pulse {
   mix-blend-mode: multiply;
 }
 
-/* ===== FLASH ===== */
 #flash {
   position: fixed; inset: 0;
   background: #fff;
@@ -91,7 +85,6 @@ body.intrusion #red-pulse {
 #flash.active { opacity: 1; }
 #flash.red { background: #8b0000; }
 
-/* ===== ЭКРАНЫ ===== */
 .screen {
   display: none;
   width: 100vw;
@@ -115,7 +108,6 @@ h1, h2 {
   line-height: 1.2;
 }
 
-/* ===== ГЛИТЧ ===== */
 .glitch { position: relative; animation: glitchShadow 3s infinite; }
 .glitch::before,
 .glitch::after {
@@ -153,7 +145,6 @@ h1, h2 {
   92% { transform: translate(2px, 1px); }
 }
 
-/* ===== ТЕКСТ ===== */
 .whisper {
   color: #7a7a7a;
   font-style: italic;
@@ -175,7 +166,6 @@ h1, h2 {
   55% { opacity: 1; }
 }
 
-/* ===== КНОПКИ ===== */
 .btn-group {
   display: flex;
   flex-wrap: wrap;
@@ -224,7 +214,6 @@ h1, h2 {
   letter-spacing: 1px;
 }
 
-/* ===== ВВОД ИМЕНИ ===== */
 #name-input {
   background: transparent;
   border: none;
@@ -242,7 +231,6 @@ h1, h2 {
 }
 #name-input::placeholder { color: #333; }
 
-/* ===== ИГРОВОЙ ЭКРАН ===== */
 #game-screen {
   justify-content: flex-start;
   padding-top: 80px;
@@ -331,7 +319,6 @@ h1, h2 {
 }
 .choice:hover::before { opacity: 1; }
 
-/* ===== ИНВЕНТАРЬ ===== */
 #inventory-bar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -362,7 +349,6 @@ h1, h2 {
   50% { box-shadow: 0 0 20px rgba(139,0,0,0.9); }
 }
 
-/* ===== СКРИМЕР ===== */
 #screamer {
   position: fixed;
   inset: 0;
@@ -413,7 +399,6 @@ h1, h2 {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
-/* ===== МЕНЮ ПАУЗЫ ===== */
 #pause-menu {
   position: fixed;
   inset: 0;
@@ -435,7 +420,6 @@ h1, h2 {
   box-shadow: 0 0 60px rgba(139,0,0,0.4);
 }
 
-/* ===== УВЕДОМЛЕНИЯ ===== */
 #fake-notifications {
   position: fixed;
   top: 60px; right: 20px;
@@ -457,17 +441,12 @@ h1, h2 {
   backdrop-filter: blur(5px);
 }
 .notif .title { color: #8b0000; font-weight: bold; margin-bottom: 4px; }
-.notif.red { border-color: #f00; animation: notifIn 0.3s ease-out, notifRed 0.4s 0.3s; }
-@keyframes notifRed {
-  0%,100% { background: rgba(20,20,20,0.95); }
-  50% { background: rgba(80,0,0,0.95); }
-}
+.notif.red { border-color: #f00; }
 @keyframes notifIn {
   from { transform: translateX(120%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* ===== ЭФФЕКТЫ ===== */
 .shadow-pass {
   position: fixed;
   inset: 0;
@@ -514,7 +493,6 @@ h1, h2 {
   to { transform: translateY(100vh); opacity: 0; }
 }
 
-/* ===== ГАЛЛЮЦИНАЦИИ ===== */
 .hallucination-text {
   position: fixed;
   color: #8b0000;
@@ -535,7 +513,6 @@ h1, h2 {
   to { opacity: 0; transform: scale(0.8); }
 }
 
-/* ===== ДРОЖАНИЕ ЭКРАНА ===== */
 body.trembling {
   animation: tremble 0.05s infinite;
 }
@@ -547,12 +524,6 @@ body.trembling {
   100% { transform: translate(1px,2px); }
 }
 
-/* ===== ИСКАЖЕНИЕ ЦВЕТА ===== */
-body.inverted {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-/* ===== ARG ===== */
 #arg-hint {
   position: fixed;
   bottom: 2px; left: 2px;
@@ -566,7 +537,6 @@ body.inverted {
   line-height: 1.2;
 }
 
-/* ===== МОБИЛЬНАЯ ===== */
 @media (max-width: 768px) {
   #hud { font-size: 0.7rem; padding: 10px 12px; }
   #inventory-bar { gap: 8px; font-size: 1rem; flex-wrap: wrap; }

@@ -1,21 +1,21 @@
 // ============================================
-// Скримеры на основе твоих картинок
+// GameScreamer — БЕЗ конфликтов с браузерным Screamer
 // ============================================
 
-const Screamer = {
-  // ⚠️ Проверь имена файлов — они должны лежать в assets/
+const GameScreamer = {
   IMAGES: {
-    girl: 'assets/girl.png',      // девочка с чёрными глазами (PNG, прозрачный фон)
-    smile: 'assets/smile.jpg',    // улыбающееся лицо
-    scream: 'assets/scream.jpg'   // кричащее размытое лицо
+    girl: 'assets/girl.png',
+    smile: 'assets/smile.jpg',
+    scream: 'assets/scream.jpg'
   },
 
-  // Веса — что чаще выпадает
   pool: [
     { key: 'smile', weight: 4 },
     { key: 'scream', weight: 4 },
     { key: 'girl', weight: 3 }
   ],
+
+  active: false,
 
   pickRandom() {
     const total = this.pool.reduce((s, x) => s + x.weight, 0);
@@ -27,61 +27,112 @@ const Screamer = {
     return 'smile';
   },
 
-  show(duration = 900, forceKey = null) {
+  show(duration = 900, forceKey = null, opts = {}) {
+    if (this.active) return;
+    this.active = true;
+
     const screamerEl = document.getElementById('screamer');
     const contentEl = document.getElementById('screamer-content');
+    const flash = document.getElementById('flash');
     const key = forceKey || this.pickRandom();
     const src = this.IMAGES[key];
 
-    // Вспышка
-    const flash = document.getElementById('flash');
-    flash.classList.add('active');
-    setTimeout(() => flash.classList.remove('active'), 80);
+    if (flash) {
+      flash.classList.add('active');
+      if (opts.red) flash.classList.add('red');
+      setTimeout(() => {
+        flash.classList.remove('active');
+        flash.classList.remove('red');
+      }, 90);
+    }
 
     contentEl.innerHTML = '';
 
-    if (key === 'girl') {
-      // Девочка — прозрачный фон, поверх чёрного
-      const img = document.createElement('img');
-      img.src = src;
-      img.className = 'girl';
-      img.alt = '';
-      img.draggable = false;
-      contentEl.appendChild(img);
-    } else {
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = '';
-      img.draggable = false;
-      contentEl.appendChild(img);
-    }
+    const img = document.createElement('img');
+    img.src = src;
+    if (key === 'girl') img.className = 'girl';
+    img.alt = '';
+    img.draggable = false;
+    contentEl.appendChild(img);
 
     screamerEl.classList.remove('hidden');
-    Audio.playScreamer();
+
+    try {
+      if (opts.double) {
+        GameAudio.playDoubleScream();
+      } else {
+        GameAudio.playScream();
+      }
+    } catch (e) { console.warn('Scream sound failed', e); }
+
+    document.body.classList.add('trembling');
+    setTimeout(() => document.body.classList.remove('trembling'), duration);
 
     if (navigator.vibrate) {
-      try { navigator.vibrate([120, 60, 120, 60, 250, 60, 400]); } catch(e){}
+      try { navigator.vibrate([150, 60, 150, 60, 300, 60, 500]); } catch(e){}
     }
 
     setTimeout(() => {
       screamerEl.classList.add('hidden');
       contentEl.innerHTML = '';
+      this.active = false;
     }, duration);
   },
 
-  // Мини-скример — быстрое лицо без звука "вопль"
   mini() {
-    this.show(420, Math.random() < 0.5 ? 'smile' : 'scream');
+    if (this.active) return;
+    const key = Math.random() < 0.5 ? 'smile' : 'scream';
+    this.show(420, key);
   },
 
-  // Девочка как особый скример
-  girl(duration = 1200) {
+  girl(duration = 1400) {
     this.show(duration, 'girl');
   },
 
-  // Финальный — самый жёсткий
+  double(duration = 1600, key = 'scream') {
+    this.show(duration, key, { double: true, red: true });
+  },
+
   final() {
-    this.show(2200, 'scream');
-    setTimeout(() => this.show(1800, 'girl'), 2400);
+    this.show(1500, 'scream', { double: true, red: true });
+    setTimeout(() => this.show(1600, 'girl'), 2200);
+    setTimeout(() => this.show(2200, 'smile', { double: true, red: true }), 4400);
+  },
+
+  girlReveal() {
+    const screamerEl = document.getElementById('screamer');
+    const contentEl = document.getElementById('screamer-content');
+
+    if (this.active) return;
+    this.active = true;
+
+    contentEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = this.IMAGES.girl;
+    img.className = 'girl';
+    img.style.animation = 'none';
+    img.style.opacity = '0';
+    img.style.transition = 'opacity 2s';
+    contentEl.appendChild(img);
+    screamerEl.classList.remove('hidden');
+
+    setTimeout(() => { img.style.opacity = '0.6'; }, 50);
+
+    setTimeout(() => {
+      img.style.transition = 'none';
+      img.style.animation = 'girlAppear 0.4s';
+      try { GameAudio.playScream(); } catch (e) {}
+      document.body.classList.add('trembling');
+      if (navigator.vibrate) {
+        try { navigator.vibrate([200, 100, 400]); } catch(e){}
+      }
+    }, 2000);
+
+    setTimeout(() => {
+      screamerEl.classList.add('hidden');
+      contentEl.innerHTML = '';
+      document.body.classList.remove('trembling');
+      this.active = false;
+    }, 3600);
   }
 };
