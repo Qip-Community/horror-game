@@ -1,26 +1,36 @@
 // ============================================
-// GameAudio — управление звуком + 3D panning
+// GameAudio — управление звуком + 3D panning + синтез
 // ============================================
 
 const GameAudio = {
   ctx: null,
   masterGain: null,
   ambientNodes: [],
+
   ambient: null,
   scream: null,
   scream2: null,
+  whisper: null,
+
   ambientPlaying: false,
   ready: false,
   baseAmbientVolume: 0.35,
 
   init() {
     if (this.ready) return;
+
     this.ambient = document.getElementById('ambient-audio');
     this.scream = document.getElementById('scream-audio');
     this.scream2 = document.getElementById('scream-audio-2');
-    if (this.ambient) { this.ambient.volume = this.baseAmbientVolume; this.ambient.loop = true; }
+    this.whisper = document.getElementById('whisper-audio');
+
+    if (this.ambient) {
+      this.ambient.volume = this.baseAmbientVolume;
+      this.ambient.loop = true;
+    }
     if (this.scream) this.scream.volume = 1.0;
     if (this.scream2) this.scream2.volume = 0.9;
+    if (this.whisper) this.whisper.volume = 0.4;
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -30,7 +40,10 @@ const GameAudio = {
         this.masterGain.gain.value = 0.4;
         this.masterGain.connect(this.ctx.destination);
       }
-    } catch (e) { console.warn('Web Audio unavailable', e); }
+    } catch (e) {
+      console.warn('Web Audio not available', e);
+    }
+
     this.ready = true;
   },
 
@@ -52,7 +65,7 @@ const GameAudio = {
           if (v >= this.baseAmbientVolume) { v = this.baseAmbientVolume; clearInterval(fade); }
           this.ambient.volume = v;
         }, 50);
-      }).catch(e => console.warn('Ambient blocked', e));
+      }).catch(e => console.warn('Ambient autoplay blocked', e));
     }
   },
 
@@ -78,7 +91,6 @@ const GameAudio = {
     setTimeout(() => { if (this.ambient) this.ambient.volume = orig; }, duration);
   },
 
-  // Динамическая громкость от рассудка
   setIntensity(intensity) {
     if (!this.ambient) return;
     const v = this.baseAmbientVolume + intensity * 0.4;
@@ -142,7 +154,6 @@ const GameAudio = {
     sub.start(now); sub.stop(now + 0.7);
   },
 
-  // ===== 3D ЗВУК =====
   play3D(x, y, z, type = 'whisper') {
     this.init();
     if (!this.ctx) return;
@@ -150,7 +161,7 @@ const GameAudio = {
     const panner = this.ctx.createPanner();
     panner.panningModel = 'HRTF';
     panner.distanceModel = 'inverse';
-    panner.setPosition(x, y, z);
+    if (panner.setPosition) panner.setPosition(x, y, z);
 
     const osc = this.ctx.createOscillator();
     osc.type = type === 'growl' ? 'sawtooth' : 'sine';
@@ -170,7 +181,6 @@ const GameAudio = {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Случайная позиция
     const positions = [
       [-1, 0, -1], [1, 0, -1], [-1, 0, 1], [1, 0, 1],
       [0, 0, -1], [-1, 0, 0], [1, 0, 0]
@@ -208,6 +218,34 @@ const GameAudio = {
     }
   },
 
+  whisperName(name) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(name);
+      u.lang = 'ru-RU';
+      u.pitch = 0.05;
+      u.rate = 0.4;
+      u.volume = 0.25;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  },
+
+  playEcho(text) {
+    if (!('speechSynthesis' in window)) return;
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        try {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ru-RU';
+          u.pitch = 0.1;
+          u.rate = 0.6 - i * 0.1;
+          u.volume = 0.15 - i * 0.04;
+          speechSynthesis.speak(u);
+        } catch (e) {}
+      }, i * 700);
+    }
+  },
+
   playStep() {
     this.init();
     if (!this.ctx) return;
@@ -221,6 +259,25 @@ const GameAudio = {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
     osc.connect(gain); gain.connect(this.masterGain);
     osc.start(now); osc.stop(now + 0.15);
+  },
+
+  playApproachSteps() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const t = now + i * 0.5;
+      const distance = 1 - i / 5;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(90, t);
+      osc.frequency.exponentialRampToValueAtTime(30, t + 0.1);
+      gain.gain.setValueAtTime(0.1 + distance * 0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      osc.connect(gain); gain.connect(this.masterGain);
+      osc.start(t); osc.stop(t + 0.15);
+    }
   },
 
   playCreak() {
@@ -239,6 +296,47 @@ const GameAudio = {
     filter.type = 'bandpass'; filter.frequency.value = 500; filter.Q.value = 8;
     osc.connect(filter); filter.connect(gain); gain.connect(this.masterGain);
     osc.start(now); osc.stop(now + 1.5);
+  },
+
+  playDoorOpen() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.linearRampToValueAtTime(200, now + 0.3);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    osc.connect(filter); filter.connect(gain); gain.connect(this.masterGain);
+    osc.start(now); osc.stop(now + 0.8);
+  },
+
+  playRadioStatic(duration = 2) {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5 * Math.pow(1 - i / bufferSize, 0.5);
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800;
+    filter.Q.value = 1.2;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+    src.connect(filter); filter.connect(gain); gain.connect(this.masterGain);
+    src.start(now); src.stop(now + duration);
   },
 
   playHeartbeat() {
@@ -324,7 +422,6 @@ const GameAudio = {
     osc.start(now); osc.stop(now + 2);
   },
 
-  // Писк при низком рассудке
   playTinnitus() {
     this.init();
     if (!this.ctx) return;

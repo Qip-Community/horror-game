@@ -1,5 +1,5 @@
 // ============================================
-// Все сцены. Использует случайные события из Meta
+// Все сцены
 // ============================================
 
 const SCENES = {
@@ -18,7 +18,7 @@ const SCENES = {
     chapter: 1,
     text: () => 'В карманах: мобильник (нет сети), сломанный фонарик, и записка. На записке твоим почерком: "НЕ ХОДИ В ПОДВАЛ. ОНО ТАМ."',
     choices: [
-      { text: 'Взять фонарик', next: 'intro', onChoose: () => Game.addItem('flashlight') },
+      { text: 'Взять фонарик', next: 'intro', onChoose: () => { Game.addItem('flashlight'); Achievements.unlock('paranoid'); } },
       { text: 'Взять записку', next: 'intro', onChoose: () => Game.addItem('note') },
       { text: 'Вернуться', next: 'intro' }
     ]
@@ -96,7 +96,7 @@ const SCENES = {
     text: () => 'Под матрасом — что-то твёрдое. Ты запускаешь руку. Пальцы касаются холодного. Это не ключ. Это... палец.',
     choices: [
       { text: 'Отдёрнуть руку', next: 'inspect', onChoose: () => GameScreamer.mini() },
-      { text: 'Вытащить', next: 'finger' }
+      { text: 'Вытащить', next: 'finger', onChoose: () => Achievements.unlock('paranoid') }
     ]
   },
 
@@ -147,7 +147,7 @@ const SCENES = {
 
   note: {
     chapter: 1,
-    text: () => 'Записка: "Ключи в: 1) под кроватью, 2) в ванной за занавеской, 3) в шкафу, 4) там, где ты не хочешь искать. Последний — в тебе самом. Если услышишь шаги за спиной — не оборачивайся."',
+    text: () => 'Записка: "Ключи в: 1) под кроватью, 2) в ванной за занавеской, 3) в шкафу, 4) там, где ты не хочешь искать. Последний — в тебе самом."',
     choices: [
       { text: 'Взять ключ под кроватью', next: 'take_key' },
       { text: 'Запомнить', next: 'inspect', onChoose: () => GameAudio.playWhisper() }
@@ -161,7 +161,17 @@ const SCENES = {
       { text: 'Ванная', next: 'bathroom' },
       { text: 'Шкаф', next: 'closet' },
       { text: 'Дверь без таблички', next: 'unknown' },
+      { text: 'Коридор зеркал', next: 'mirror_hall' },
       { text: 'ОБЕРНУТЬСЯ', next: 'death_behind', onChoose: () => GameScreamer.girlReveal() }
+    ]
+  },
+
+  mirror_hall: {
+    chapter: 2,
+    text: () => 'Коридор из зеркал. Ты видишь себя 20 раз. Но в 21-м отражении — не ты. Оно смотрит. Оно ждёт.',
+    choices: [
+      { text: 'Пройти быстро', next: 'hallway', onChoose: () => { if (Math.random() < 0.5) GameScreamer.girlReveal(); } },
+      { text: 'Посмотреть в 21-е', next: 'death_mirror_hall', onChoose: () => GameScreamer.double(1800, 'smile') }
     ]
   },
 
@@ -306,7 +316,26 @@ const SCENES = {
       { text: 'Заглянуть в колодец', next: 'well' },
       { text: 'Найти выход', next: 'basement_exit' },
       { text: 'Осмотреть стены', next: 'basement_walls' },
-      { text: 'Осмотреть пол', next: 'basement_floor' }
+      { text: 'Осмотреть пол', next: 'basement_floor' },
+      { text: 'Комната кукол', next: 'doll_room' }
+    ]
+  },
+
+  doll_room: {
+    chapter: 3,
+    text: () => 'Комната, полная кукол. Все смотрят на тебя. Все улыбаются. Все — с твоим лицом.',
+    choices: [
+      { text: 'Разбить одну', next: 'death_doll', onChoose: () => GameScreamer.double(1500, 'scream') },
+      { text: 'Поговорить с ними', next: 'doll_talk' },
+      { text: 'Уйти', next: 'basement' }
+    ]
+  },
+
+  doll_talk: {
+    chapter: 3,
+    text: () => 'Ты говоришь: "Кто вы?". Все куклы одновременно поворачивают головы. И отвечают хором: "МЫ — ЭТО ТЫ."',
+    choices: [
+      { text: 'Бежать', next: 'death_dolls', onChoose: () => GameScreamer.final() }
     ]
   },
 
@@ -384,6 +413,23 @@ const SCENES = {
     ]
   },
 
+  secret_room: {
+    chapter: 4,
+    text: () => 'Ты находишь дверь, которой не было. За ней — комната, полностью белая. В центре — стол. На столе — фотография. На ней — ТЫ. Сделанная СЕГОДНЯ.',
+    choices: [
+      { text: 'Взять фото', next: 'secret_photo', onChoose: () => { Achievements.unlock('secret_found'); GameAudio.playWhisper(); } },
+      { text: 'Уйти', next: 'basement' }
+    ]
+  },
+
+  secret_photo: {
+    chapter: 4,
+    text: (n) => `На обороте фото надпись: "${n}, ты не должен был зайти так далеко. Теперь ОНО знает, что ты знаешь."`,
+    choices: [
+      { text: 'Обернуться', next: 'death_secret', onChoose: () => GameScreamer.double(2000, 'girl') }
+    ]
+  },
+
   final_door: {
     chapter: 4,
     text: (n) => `У тебя 4 ключа. Ты возвращаешься к главной двери. Оно ждёт. Оно знает, что ты уже не выйдешь таким, как вошёл. ${n}.`,
@@ -420,6 +466,7 @@ const SCENES = {
   death_mirror: { death: true, msg: 'Ты разбил зеркало. Осколки вошли в глаза.' },
   death_mirror2: { death: true, msg: 'Отражение оказалось настоящим. А ты — нет.' },
   death_mirror3: { death: true, msg: 'Ты обернулся. И увидел то, что говорило.' },
+  death_mirror_hall: { death: true, msg: '21-е отражение улыбнулось. Ты — нет. Оно вышло.' },
   death_behind: { death: true, msg: 'Ты обернулся. Оно ждало именно этого.' },
   death_drain: { death: true, msg: 'Глаз в сливе моргнул. Ты утонул в ванной без воды.' },
   death_face: { death: true, msg: 'Ты увидел своё лицо. Теперь у тебя его нет.' },
@@ -432,5 +479,10 @@ const SCENES = {
   death_bones: { death: true, msg: 'Ты побежал по костям. Кости схватили тебя.' },
   death_erase: { death: true, msg: 'Ты стёр рисунки. С ними стёрлось твоё лицо.' },
   death_closet: { death: true, msg: 'Ты держал дверцу. Оно держало твою руку. С той стороны.' },
-  death_timeout: { death: true, msg: 'Время вышло. Оно вошло само.' }
+  death_timeout: { death: true, msg: 'Время вышло. Оно вошло само.' },
+  death_insanity: { death: true, msg: 'Твой разум не выдержал.' },
+  death_secret: { death: true, msg: 'Ты обернулся. Но комната была пуста. Это было хуже.' },
+  death_doll: { death: true, msg: 'Кукла разбилась. Все остальные посмотрели на тебя.' },
+  death_dolls: { death: true, msg: 'Куклы двигались быстрее тебя.' },
+  death_it_found: { death: true, msg: 'Оно вошло в комнату. Ты не успел.' }
 };

@@ -1,18 +1,13 @@
 // ============================================
-// Meta — мета-события: BSOD, звонки, webcam, статистика
+// Meta — webcam, BSOD, звонки, night mode, mic
 // ============================================
 
 const Meta = {
   webcamReady: false,
   webcamVideo: null,
-  stats: {
-    deaths: [],           // массив причин смерти
-    sessions: 0,          // сколько раз играл
-    totalDeaths: 0
-  },
+  stats: { deaths: [], sessions: 0, totalDeaths: 0 },
 
   init() {
-    // Загружаем мета-статистику
     try {
       const raw = localStorage.getItem('horror_meta');
       if (raw) Object.assign(this.stats, JSON.parse(raw));
@@ -20,38 +15,20 @@ const Meta = {
       this.saveStats();
     } catch(e) {}
 
-    // Ночной режим
     this.checkNightMode();
-
-    // Приветствие возвращения
     this.showReturningHint();
-
-    // Регистрируем webcam-video
     this.webcamVideo = document.getElementById('webcam-video');
-
-    // Фейковый beforeunload (если играл > 5 минут)
     setTimeout(() => this.enableBeforeUnload(), 5 * 60 * 1000);
-
-    // Запускаем случайные мета-события
     this.startRandomMetaEvents();
-
-    // Обновляем счётчик "онлайн игроков"
     this.startPlayersCounter();
-
-    // Кровавый режим при низком рассудке
     this.startBloodModeWatcher();
-
-    // Слушаем клики для кровавых пятен
     this.bindBloodStains();
   },
 
   saveStats() {
-    try {
-      localStorage.setItem('horror_meta', JSON.stringify(this.stats));
-    } catch(e) {}
+    try { localStorage.setItem('horror_meta', JSON.stringify(this.stats)); } catch(e) {}
   },
 
-  // ===== WEBCAM =====
   async enableWebcam() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -64,14 +41,31 @@ const Meta = {
           status.textContent = '📷 Камера: активна. Оно видит тебя.';
           status.style.color = '#8b0000';
         }
+        Achievements.unlock('watcher');
         return true;
       }
     } catch (e) {
-      console.warn('Webcam denied', e);
       const status = document.getElementById('webcam-status');
       if (status) status.textContent = '📷 Камера: отказано. Оно всё равно видит.';
     }
     return false;
+  },
+
+  async enableMic() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const status = document.getElementById('mic-status');
+      if (status) {
+        status.textContent = '🎤 Микрофон: активен. Оно слышит.';
+        status.style.color = '#8b0000';
+      }
+      Achievements.unlock('listener');
+      return true;
+    } catch (e) {
+      const status = document.getElementById('mic-status');
+      if (status) status.textContent = '🎤 Микрофон: отказано. Оно всё равно слышит.';
+      return false;
+    }
   },
 
   triggerSelfScreamer() {
@@ -85,7 +79,7 @@ const Meta = {
       const ctx = canvas.getContext('2d');
       ctx.filter = 'contrast(2.5) saturate(3) hue-rotate(-30deg) brightness(0.8)';
       ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1); // Зеркалим
+      ctx.scale(-1, 1);
       ctx.drawImage(this.webcamVideo, 0, 0);
 
       const img = document.createElement('img');
@@ -102,28 +96,20 @@ const Meta = {
         document.body.classList.remove('trembling');
       }, 400);
       return true;
-    } catch(e) {
-      console.warn('Self screamer failed', e);
-      return false;
-    }
+    } catch(e) { return false; }
   },
 
   maybeWebcamScreamer(chance = 0.2) {
     if (Math.random() < chance) {
-      if (!this.triggerSelfScreamer()) {
-        // Fallback — обычный скример
-        GameScreamer.mini();
-      }
+      if (!this.triggerSelfScreamer()) GameScreamer.mini();
     }
   },
 
-  // ===== НОЧНОЙ РЕЖИМ =====
   checkNightMode() {
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
 
-    // 3:33 — особый момент
     if (h === 3 && m >= 30 && m <= 36) {
       document.body.classList.add('nightmare-mode');
       setTimeout(() => {
@@ -132,10 +118,10 @@ const Meta = {
       }, 2000);
     } else if (h >= 0 && h < 5) {
       document.body.classList.add('nightmare-mode');
+      try { Achievements.unlock('night_owl'); } catch(e) {}
     }
   },
 
-  // ===== ПРИВЕТСТВИЕ ВОЗВРАЩЕНИЯ =====
   showReturningHint() {
     try {
       const lastName = localStorage.getItem('horror_last_name');
@@ -143,21 +129,15 @@ const Meta = {
       const el = document.getElementById('returning-hint');
       if (lastName && el && sessions > 1) {
         el.style.display = 'block';
-        if (sessions === 2) {
-          el.textContent = `Снова ты, ${lastName}? Ты не вышел. Почему ты вернулся?`;
-        } else if (sessions < 6) {
-          el.textContent = `${lastName}, ты возвращаешься ${sessions}-й раз. Оно считает.`;
-        } else {
-          el.textContent = `${lastName}. Ты уже часть этого места. Смирись.`;
-        }
+        if (sessions === 2) el.textContent = `Снова ты, ${lastName}? Ты не вышел. Почему ты вернулся?`;
+        else if (sessions < 6) el.textContent = `${lastName}, ты возвращаешься ${sessions}-й раз. Оно считает.`;
+        else el.textContent = `${lastName}. Ты уже часть этого места. Смирись.`;
       }
     } catch(e) {}
   },
 
-  // ===== ФЕЙКОВЫЙ BSOD =====
   triggerBSOD() {
     if (document.getElementById('bsod')) return;
-
     const bsod = document.createElement('div');
     bsod.id = 'bsod';
     bsod.innerHTML = `
@@ -177,7 +157,6 @@ const Meta = {
     `;
     document.body.appendChild(bsod);
 
-    // Прогресс
     let p = 0;
     const interval = setInterval(() => {
       p += Math.floor(Math.random() * 15);
@@ -186,7 +165,6 @@ const Meta = {
       if (el) el.textContent = `${p}% завершено`;
       if (p === 100) {
         clearInterval(interval);
-        // Резкий скример вместо перезагрузки
         setTimeout(() => {
           bsod.remove();
           GameScreamer.double(1800, 'scream');
@@ -195,10 +173,8 @@ const Meta = {
     }, 400);
   },
 
-  // ===== ФЕЙКОВЫЙ ЗВОНОК =====
   triggerFakeCall() {
     if (document.getElementById('fake-call')) return;
-
     const call = document.createElement('div');
     call.id = 'fake-call';
     call.innerHTML = `
@@ -211,7 +187,6 @@ const Meta = {
       </div>
     `;
     document.body.appendChild(call);
-
     try { GameAudio.playHeartbeat(); } catch(e) {}
 
     const removeCall = () => {
@@ -225,7 +200,6 @@ const Meta = {
 
     if (answer) answer.onclick = () => {
       removeCall();
-      // Оно говорит твоим голосом
       setTimeout(() => {
         if ('speechSynthesis' in window) {
           const u = new SpeechSynthesisUtterance(`${Game.state.name}, не отвечай. Это не я.`);
@@ -239,12 +213,10 @@ const Meta = {
     if (decline) decline.onclick = () => {
       removeCall();
       UI.notify('📞 Отклонено', 'Но звонок повторится.', true);
-      // Повтор через 15 секунд
       setTimeout(() => this.triggerFakeCall(), 15000);
     };
   },
 
-  // ===== ФЕЙКОВЫЙ beforeunload =====
   enableBeforeUnload() {
     window.addEventListener('beforeunload', e => {
       if (Game.state.startTime > 0 && Game.state.deaths === 0) {
@@ -255,36 +227,24 @@ const Meta = {
     });
   },
 
-  // ===== СЛУЧАЙНЫЕ МЕТА-СОБЫТИЯ =====
   startRandomMetaEvents() {
     setInterval(() => {
       if (!document.getElementById('game-screen').classList.contains('active')) return;
       if (!document.getElementById('pause-menu').classList.contains('hidden')) return;
 
       const r = Math.random();
-      const sanity = Game.state.sanity;
-      const intensity = (100 - sanity) / 100;
+      const intensity = (100 - Game.state.sanity) / 100;
 
-      // Редкие шокирующие события
-      if (r < 0.02) {
-        this.triggerBSOD();
-      } else if (r < 0.04) {
-        this.triggerFakeCall();
-      } else if (r < 0.08) {
-        this.triggerSelfScreamer();
-      } else if (r < 0.12) {
-        this.triggerTitleChange();
-      } else if (r < 0.16) {
-        this.triggerFaviconChange();
-      } else if (r < 0.20 + intensity * 0.1) {
-        this.triggerRedRoom();
-      } else if (r < 0.25 + intensity * 0.1) {
-        MetaFakePlayers.dropPlayers();
-      }
+      if (r < 0.02) this.triggerBSOD();
+      else if (r < 0.04) this.triggerFakeCall();
+      else if (r < 0.08) this.triggerSelfScreamer();
+      else if (r < 0.12) this.triggerTitleChange();
+      else if (r < 0.16) this.triggerFaviconChange();
+      else if (r < 0.20 + intensity * 0.1) this.triggerRedRoom();
+      else if (r < 0.25 + intensity * 0.1) MetaFakePlayers.dropPlayers();
     }, 20000);
   },
 
-  // ===== МЕНЯЕМ TITLE =====
   triggerTitleChange() {
     const titles = ['БЕГИ', 'ОНО РЯДОМ', 'СЗАДИ', 'НЕ ОБОРАЧИВАЙСЯ', '🔴 БЕГИ', '⚠ ОНО ЗДЕСЬ'];
     document.title = titles[Math.floor(Math.random() * titles.length)];
@@ -302,23 +262,16 @@ const Meta = {
   triggerRedRoom() {
     document.body.style.filter = 'hue-rotate(-90deg) saturate(3) contrast(1.3)';
     try { GameAudio.playThud(); } catch(e) {}
-    setTimeout(() => {
-      document.body.style.filter = '';
-    }, 2000);
+    setTimeout(() => { document.body.style.filter = ''; }, 2000);
   },
 
-  // ===== КРОВАВЫЙ РЕЖИМ =====
   startBloodModeWatcher() {
     setInterval(() => {
-      if (Game.state.sanity < 30) {
-        document.body.classList.add('blood-mode');
-      } else {
-        document.body.classList.remove('blood-mode');
-      }
+      if (Game.state.sanity < 30) document.body.classList.add('blood-mode');
+      else document.body.classList.remove('blood-mode');
     }, 3000);
   },
 
-  // ===== КРОВАВЫЕ ПЯТНА ОТ КЛИКОВ =====
   bindBloodStains() {
     document.addEventListener('click', e => {
       if (!document.getElementById('game-screen').classList.contains('active')) return;
@@ -336,7 +289,6 @@ const Meta = {
     });
   },
 
-  // ===== СЧЁТЧИК ОНЛАЙН =====
   startPlayersCounter() {
     let players = 47;
     setInterval(() => {
@@ -345,8 +297,6 @@ const Meta = {
       if (players > 99) players = 99;
       const el = document.getElementById('online');
       if (el) el.textContent = `👥 ${players}`;
-
-      // Иногда резко падает до 1
       if (Math.random() < 0.04) {
         players = 1;
         if (el) el.textContent = `👥 1`;
@@ -355,21 +305,15 @@ const Meta = {
     }, 5000);
   },
 
-  // ===== ДИНАМИЧЕСКИЙ ЗВУК =====
   updateAudioIntensity() {
     const intensity = (100 - Game.state.sanity) / 100;
     try {
       GameAudio.setIntensity(intensity);
-      if (intensity > 0.6 && Math.random() < 0.3) {
-        GameAudio.playTinnitus();
-      }
+      if (intensity > 0.6 && Math.random() < 0.3) GameAudio.playTinnitus();
     } catch(e) {}
   }
 };
 
-// ============================================
-// Фейковые игроки онлайн — резкий сброс
-// ============================================
 const MetaFakePlayers = {
   dropPlayers() {
     const el = document.getElementById('online');

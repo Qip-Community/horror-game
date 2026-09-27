@@ -13,7 +13,8 @@ const Game = {
     startTime: 0,
     deaths: 0,
     visited: [],
-    countdown: 15 * 60  // 15 минут
+    countdown: 15 * 60,
+    lastDeath: 'unknown'
   },
 
   els: {},
@@ -23,33 +24,24 @@ const Game = {
     this.cacheEls();
     this.bindEvents();
     this.preloadImages();
+    try { Achievements.init(); } catch(e) { console.warn('Achievements init failed', e); }
+    try { MiniMap.init(); } catch(e) { console.warn('MiniMap init failed', e); }
     try { Meta.init(); } catch(e) { console.warn('Meta init failed', e); }
+    this.bindConsoleCommands();
   },
 
   cacheEls() {
     const $ = id => document.getElementById(id);
     this.els = {
-      startScreen: $('start-screen'),
-      nameScreen: $('name-screen'),
-      gameScreen: $('game-screen'),
-      deathScreen: $('death-screen'),
-      endScreen: $('end-screen'),
-      story: $('story'),
-      choices: $('choices'),
-      keysCount: $('keys-count'),
-      sanity: $('sanity'),
-      timer: $('timer'),
-      progress: $('progress'),
-      nameInput: $('name-input'),
-      deathMsg: $('death-msg'),
-      deathCause: $('death-cause'),
-      deathStats: $('death-stats'),
-      endTitle: $('end-title'),
-      endText: $('end-text'),
-      endStats: $('end-stats'),
-      endDeathsList: $('end-deaths-list'),
-      pauseMenu: $('pause-menu'),
-      pauseFlavor: $('pause-flavor'),
+      startScreen: $('start-screen'), nameScreen: $('name-screen'),
+      gameScreen: $('game-screen'), deathScreen: $('death-screen'), endScreen: $('end-screen'),
+      story: $('story'), choices: $('choices'),
+      keysCount: $('keys-count'), sanity: $('sanity'), timer: $('timer'), progress: $('progress'),
+      nameInput: $('name-input'), deathMsg: $('death-msg'), deathCause: $('death-cause'),
+      deathStats: $('death-stats'), endTitle: $('end-title'), endText: $('end-text'),
+      endStats: $('end-stats'), endDeathsList: $('end-deaths-list'),
+      endAchievements: $('end-achievements'),
+      pauseMenu: $('pause-menu'), pauseFlavor: $('pause-flavor'),
       inventoryBar: $('inventory-bar')
     };
   },
@@ -63,7 +55,6 @@ const Game = {
 
   bindEvents() {
     const $ = id => document.getElementById(id);
-
     const startBtn = $('start-btn');
     if (startBtn) startBtn.addEventListener('click', () => this.startNameInput());
 
@@ -74,6 +65,12 @@ const Game = {
     if (camBtn) camBtn.addEventListener('click', async () => {
       const ok = await Meta.enableWebcam();
       if (ok) UI.notify('📷 Камера', 'Оно теперь видит тебя.', true);
+    });
+
+    const micBtn = $('mic-btn');
+    if (micBtn) micBtn.addEventListener('click', async () => {
+      const ok = await Meta.enableMic();
+      if (ok) UI.notify('🎤 Микрофон', 'Оно слышит тебя.', true);
     });
 
     const nameBtn = $('name-btn');
@@ -106,13 +103,36 @@ const Game = {
     const quitBtn = $('quit-btn');
     if (quitBtn) quitBtn.addEventListener('click', () => this.restart());
 
+    const achBtn = $('ach-btn');
+    if (achBtn) achBtn.addEventListener('click', () => {
+      Achievements.renderModal();
+      const modal = $('achievements-modal');
+      if (modal) modal.classList.remove('hidden');
+    });
+
+    const achClose = $('ach-close');
+    if (achClose) achClose.addEventListener('click', () => {
+      const modal = $('achievements-modal');
+      if (modal) modal.classList.add('hidden');
+    });
+
+    const mapBtn = $('map-btn');
+    if (mapBtn) mapBtn.addEventListener('click', () => MiniMap.toggle());
+
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && this.els.gameScreen && this.els.gameScreen.classList.contains('active')) {
+        const achModal = $('achievements-modal');
+        if (achModal && !achModal.classList.contains('hidden')) {
+          achModal.classList.add('hidden');
+          return;
+        }
         this.togglePause();
+      }
+      if (e.key === 'm' || e.key === 'M' || e.key === 'ь' || e.key === 'Ь') {
+        MiniMap.toggle();
       }
     });
 
-    // Тень за курсором
     document.addEventListener('mousemove', e => {
       const blood = document.getElementById('blood-cursor');
       const shadow = document.getElementById('shadow-cursor');
@@ -131,6 +151,26 @@ const Game = {
     });
   },
 
+  bindConsoleCommands() {
+    window.unlockSecretRoom = () => {
+      Achievements.unlock('secret_found');
+      this.showScene(SCENES.secret_room);
+      UI.notify('🚪 Секрет', 'Секретная комната открыта.', true);
+    };
+    window.revealARG = () => {
+      const hint = document.getElementById('arg-hint');
+      if (hint) {
+        hint.style.color = '#8b0000';
+        hint.style.fontSize = '14px';
+        hint.style.background = '#000';
+        hint.style.padding = '5px';
+        hint.style.zIndex = '99999';
+        UI.notify('🔍 ARG', 'Ты нашёл секретный код. Расшифруй его!', true);
+        Achievements.unlock('arg_master');
+      }
+    };
+  },
+
   async toggleFullscreen() {
     try {
       if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
@@ -140,12 +180,13 @@ const Game = {
 
   startNameInput() {
     try {
-      GameAudio.init(); GameAudio.resume(); GameAudio.startAmbient();
-    } catch(e) { console.warn('Audio failed', e); }
+      GameAudio.init();
+      GameAudio.resume();
+      GameAudio.startAmbient();
+    } catch(e) { console.warn('Audio start failed', e); }
 
     this.els.startScreen.classList.remove('active');
     this.els.nameScreen.classList.add('active');
-
     setTimeout(() => {
       try { this.els.nameInput.focus(); } catch(e) {}
     }, 100);
@@ -155,7 +196,6 @@ const Game = {
     const name = (this.els.nameInput.value || '').trim() || 'Незнакомец';
     this.state.name = name;
 
-    // Сохраняем имя для мета-финала
     try { localStorage.setItem('horror_last_name', name); } catch(e) {}
 
     this.els.nameScreen.classList.remove('active');
@@ -169,22 +209,22 @@ const Game = {
     this.startRandomEvents();
     this.startHallucinations();
 
+    setTimeout(() => {
+      try { Multiplayer.start(); } catch(e) { console.warn('Multiplayer failed', e); }
+    }, 3000);
+
     this.showScene(SCENES.intro);
   },
 
   startTimer() {
     const t = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
-      const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-      const s = String(elapsed % 60).padStart(2, '0');
-      if (this.els.timer) this.els.timer.textContent = `⏱ ${m}:${s}`;
       if (elapsed > 0 && elapsed % 40 === 0) this.adjustSanity(-2);
       try { Meta.updateAudioIntensity(); } catch(e) {}
     }, 1000);
     this.timers.push(t);
   },
 
-  // Обратный отсчёт 15 минут
   startCountdown() {
     const t = setInterval(() => {
       if (!this.els.gameScreen.classList.contains('active')) return;
@@ -195,19 +235,15 @@ const Game = {
       const el = this.els.timer;
       if (el) el.textContent = `⏱ ${m}:${String(s).padStart(2, '0')}`;
 
-      // Предупреждения
       if (this.state.countdown === 60) {
         UI.notify('⚠️ ПОСЛЕДНЯЯ МИНУТА', 'Оно уже близко.', true);
         GameAudio.playHeartbeat();
       }
-      if (this.state.countdown === 30) {
-        UI.notify('⚠️ 30 СЕКУНД', 'Беги.', true);
-      }
+      if (this.state.countdown === 30) UI.notify('⚠️ 30 СЕКУНД', 'Беги.', true);
       if (this.state.countdown === 10) {
         UI.notify('⚠️ 10', 'ПОСЛЕДНИЙ ШАНС.', true);
         GameScreamer.mini();
       }
-
       if (this.state.countdown <= 0) {
         clearInterval(t);
         this.die('Время вышло. Оно вошло само.', 'death_timeout');
@@ -244,6 +280,21 @@ const Game = {
           Effects.tremble(3000);
         } else if (r < 0.36 + sanityFactor * 0.1) {
           Meta.maybeWebcamScreamer(0.3);
+        } else if (r < 0.39 + sanityFactor * 0.1) {
+          EVP.play();
+          Achievements.unlock('evp_hunter');
+        } else if (r < 0.42 + sanityFactor * 0.1) {
+          GameAudio.playApproachSteps();
+        } else if (r < 0.45 + sanityFactor * 0.1) {
+          GameAudio.playRadioStatic(2);
+          const so = document.getElementById('static-overlay');
+          if (so) {
+            so.classList.add('active');
+            setTimeout(() => so.classList.remove('active'), 2000);
+          }
+        } else if (r < 0.48 + sanityFactor * 0.1 && this.state.name) {
+          GameAudio.whisperName(this.state.name);
+          Achievements.unlock('listener');
         }
       } catch(e) { console.warn('Random event failed', e); }
     }, 9000);
@@ -275,6 +326,7 @@ const Game = {
     this.state.keys++;
     if (this.els.keysCount) this.els.keysCount.textContent = this.state.keys;
     try { GameAudio.playThud(); } catch(e) {}
+    try { MiniMap.addKey(this.state.scene); } catch(e) {}
 
     if (this.state.keys === 3) {
       setTimeout(() => this.showScene({
@@ -291,6 +343,10 @@ const Game = {
         ]
       }), 1500);
     }
+
+    if (this.state.keys === 4) {
+      Achievements.unlock('collector');
+    }
   },
 
   addItem(item) {
@@ -304,7 +360,7 @@ const Game = {
   itemName(item) {
     const names = {
       flashlight: 'Фонарик', mirror: 'Зеркало', note: 'Записка',
-      bone: 'Кость', locket: 'Медальон',
+      bone: 'Кость', locket: 'Медальон', candle: 'Свеча',
       key1: 'Ключ 1', key2: 'Ключ 2', key3: 'Ключ 3', key4: 'Ключ 4'
     };
     return names[item] || item;
@@ -323,13 +379,12 @@ const Game = {
       document.body.classList.remove('intrusion');
     }
 
-    if (this.state.sanity === 0) {
-      this.die('Твой разум не выдержал.', 'death_insanity');
-    }
+    if (this.state.sanity === 0) this.die('Твой разум не выдержал.', 'death_insanity');
   },
 
-  showScene(scene) {
-    if (scene.death) return this.die(scene.msg, scene.id);
+  showScene(scene, sceneId) {
+    if (scene.death) return this.die(scene.msg, sceneId);
+    this.state.scene = sceneId || 'unknown';
 
     const text = typeof scene.text === 'function' ? scene.text(this.state.name) : scene.text;
 
@@ -340,6 +395,13 @@ const Game = {
       this.state.chapter = scene.chapter;
       if (this.els.progress) this.els.progress.textContent = `Глава ${scene.chapter}`;
     }
+
+    try { MiniMap.moveTo(sceneId); } catch(e) {}
+    if (this.state.visited.indexOf(sceneId) === -1 && sceneId) {
+      this.state.visited.push(sceneId);
+      if (this.state.visited.length >= 20) Achievements.unlock('curious');
+    }
+    if (this.state.chapter === 3 && this.state.deaths === 0) Achievements.unlock('brave');
 
     let i = 0;
     const speed = 22;
@@ -372,8 +434,7 @@ const Game = {
           const nextScene = SCENES[c.next];
           if (nextScene) {
             if (nextScene.death) return this.die(nextScene.msg, c.next);
-            if (this.state.visited.indexOf(c.next) === -1) this.state.visited.push(c.next);
-            this.showScene(nextScene);
+            this.showScene(nextScene, c.next);
           }
         });
         this.els.choices.appendChild(btn);
@@ -385,13 +446,17 @@ const Game = {
     this.state.deaths++;
     this.state.lastDeath = cause || 'unknown';
 
-    // Сохраняем в мета-статистику
     try {
       Meta.stats.totalDeaths = (Meta.stats.totalDeaths || 0) + 1;
       Meta.stats.deaths.push({ cause: cause || 'unknown', time: Date.now() });
       if (Meta.stats.deaths.length > 50) Meta.stats.deaths.shift();
       Meta.saveStats();
     } catch(e) {}
+
+    const d = this.state.deaths;
+    if (d === 1) Achievements.unlock('first_blood');
+    if (d === 5) Achievements.unlock('suicidal');
+    if (d === 10) Achievements.unlock('masochist');
 
     setTimeout(() => {
       try { GameScreamer.double(1600, 'scream'); } catch(e) {}
@@ -413,6 +478,7 @@ const Game = {
       death_mirror: '🪞 Разбился о собственное отражение',
       death_mirror2: '👁️ Отражение оказалось настоящим',
       death_mirror3: '🪞 Обернулся на голос из зеркала',
+      death_mirror_hall: '🪞 21-е отражение вышло',
       death_behind: '👤 Обернулся не вовремя',
       death_door: '🚪 Открыл дверь не тому',
       death_heart: '🫀 Слишком много шума',
@@ -429,7 +495,11 @@ const Game = {
       death_erase: '✏️ Стёр своё лицо',
       death_closet: '🚪 Держал дверцу шкафа',
       death_timeout: '⏱ Время вышло',
-      death_insanity: '🧠 Рассудок не выдержал'
+      death_insanity: '🧠 Рассудок не выдержал',
+      death_secret: '🚪 Обернулся в пустой комнате',
+      death_doll: '🧸 Разбил куклу',
+      death_dolls: '🧸 Куклы быстрее',
+      death_it_found: '👤 ОНО вошло в комнату'
     };
     return titles[cause] || '💀 Причина неизвестна';
   },
@@ -460,11 +530,19 @@ const Game = {
           this.els.endStats.textContent = `Время: ${m}:${String(s).padStart(2, '0')} • Ключей: ${this.state.keys} • Смертей: ${this.state.deaths}`;
         }
 
-        // Список смертей
         if (this.els.endDeathsList && Meta.stats.deaths.length > 0) {
           const lastDeaths = Meta.stats.deaths.slice(-5).map(d => this.deathTitle(d.cause)).join(' • ');
           this.els.endDeathsList.textContent = `Всего смертей за всё время: ${Meta.stats.totalDeaths}. Последние: ${lastDeaths}`;
         }
+
+        if (this.els.endAchievements) {
+          const total = Object.keys(Achievements.list).length;
+          const unlocked = Achievements.unlocked.size;
+          this.els.endAchievements.textContent = `🏆 Достижений: ${unlocked}/${total}`;
+        }
+
+        if (elapsed < 300) Achievements.unlock('speedrun');
+        if (this.state.deaths === 0) Achievements.unlock('ghost');
 
         try { GameAudio.stopAmbient(); } catch(e) {}
       }, 5000);
@@ -491,14 +569,9 @@ const Game = {
   saveProgress() {
     try {
       localStorage.setItem('horror_save', JSON.stringify({
-        name: this.state.name,
-        keys: this.state.keys,
-        sanity: this.state.sanity,
-        chapter: this.state.chapter,
-        items: this.state.items,
-        scene: this.state.scene,
-        visited: this.state.visited,
-        deaths: this.state.deaths
+        name: this.state.name, keys: this.state.keys, sanity: this.state.sanity,
+        chapter: this.state.chapter, items: this.state.items, scene: this.state.scene,
+        visited: this.state.visited, deaths: this.state.deaths
       }));
     } catch(e) {}
   },
@@ -514,7 +587,6 @@ const Game = {
       Object.assign(this.state, data);
       this.state.items = data.items || [];
       this.state.visited = data.visited || [];
-
       if (showNotify) {
         if (this.els.keysCount) this.els.keysCount.textContent = this.state.keys;
         if (this.els.sanity) this.els.sanity.textContent = this.state.sanity;
@@ -615,9 +687,7 @@ const UI = {
     const msg = this.fakeMessages[Math.floor(Math.random() * this.fakeMessages.length)];
     const red = Math.random() < 0.3;
     this.notify(msg.title, msg.text, red);
-    if (red) {
-      try { GameAudio.playThud(); } catch(e) {}
-    }
+    if (red) try { GameAudio.playThud(); } catch(e) {}
   }
 };
 

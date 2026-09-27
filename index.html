@@ -11,7 +11,6 @@
 </head>
 <body>
 
-<!-- ===== СЛОИ ЭФФЕКТОВ ===== -->
 <div id="noise"></div>
 <div id="vignette"></div>
 <div id="scanlines"></div>
@@ -20,8 +19,10 @@
 <div id="flash"></div>
 <div id="red-pulse"></div>
 <div id="fog"></div>
+<div id="blood-overlay"></div>
+<div id="static-overlay"></div>
 
-<!-- ===== СТАРТОВЫЙ ЭКРАН ===== -->
+<!-- СТАРТ -->
 <section id="start-screen" class="screen active">
   <h1 class="glitch" data-text="ОНО ЗНАЕТ ТВОЁ ИМЯ">ОНО ЗНАЕТ ТВОЁ ИМЯ</h1>
   <p class="whisper">Ты не должен был это открывать...</p>
@@ -29,15 +30,17 @@
     <button id="start-btn" class="btn" type="button">ВОЙТИ</button>
     <button id="fullscreen-btn" class="btn btn-small" type="button">⛶ ПОЛНЫЙ ЭКРАН</button>
     <button id="webcam-btn" class="btn btn-small" type="button">📷 РАЗРЕШИТЬ КАМЕРУ</button>
+    <button id="mic-btn" class="btn btn-small" type="button">🎤 РАЗРЕШИТЬ МИКРОФОН</button>
   </div>
   <p class="hint">🎧 Наушники. Свет выключен. Не оборачивайся.</p>
-  <p class="hint tiny" id="webcam-status">Камера: не разрешена</p>
-  <p class="hint tiny">Если станет слишком — закрой вкладку. Оно не пойдёт за тобой. Наверное.</p>
-  <p class="hint tiny" style="color:#3a0000;margin-top:0.5rem;">⚠ Громкие звуки и внезапные скримеры. Не для слабонервных.</p>
+  <p class="hint tiny" id="webcam-status">📷 Камера: не разрешена</p>
+  <p class="hint tiny" id="mic-status">🎤 Микрофон: не разрешён</p>
+  <p class="hint tiny" style="color:#3a0000;margin-top:0.5rem;">⚠ Громкие звуки и внезапные скримеры.</p>
   <p class="hint tiny" id="returning-hint" style="color:#8b0000;margin-top:1rem;display:none;"></p>
+  <p class="hint tiny" id="achievements-hint" style="color:#444;margin-top:0.5rem;"></p>
 </section>
 
-<!-- ===== ЭКРАН ВВОДА ИМЕНИ ===== -->
+<!-- ИМЯ -->
 <section id="name-screen" class="screen">
   <h2>КАК ТЕБЯ ЗОВУТ?</h2>
   <p class="whisper">Оно должно знать, кого искать.</p>
@@ -45,7 +48,7 @@
   <button id="name-btn" class="btn" type="button">ПОДТВЕРДИТЬ</button>
 </section>
 
-<!-- ===== ИГРОВОЙ ЭКРАН ===== -->
+<!-- ИГРА -->
 <section id="game-screen" class="screen">
   <div id="hud">
     <div class="hud-item">🔑 <b id="keys-count">0</b>/4</div>
@@ -53,17 +56,31 @@
     <div class="hud-item" id="timer">⏱ 15:00</div>
     <div class="hud-item" id="progress">Глава 1</div>
     <div class="hud-item" id="online">👥 47</div>
+    <div class="hud-item" id="friend-status" style="display:none;">🟢 Друг играет</div>
   </div>
+
+  <div id="minimap" class="hidden">
+    <div class="minimap-title">КАРТА</div>
+    <div class="minimap-grid" id="minimap-grid"></div>
+    <div class="minimap-legend">
+      <span>● Ты</span>
+      <span style="color:#8b0000;">● ОНО</span>
+      <span style="color:#ffcc00;">● Ключ</span>
+    </div>
+  </div>
+
   <div id="room">
     <p id="story"></p>
     <div id="choices"></div>
   </div>
+
   <div id="inventory-bar">
     <span class="inv-item" data-key="flashlight">🔦</span>
     <span class="inv-item" data-key="mirror">🪞</span>
     <span class="inv-item" data-key="note">📜</span>
     <span class="inv-item" data-key="bone">🦴</span>
     <span class="inv-item" data-key="locket">📿</span>
+    <span class="inv-item" data-key="candle">🕯️</span>
     <span class="inv-item" data-key="key1">🔑</span>
     <span class="inv-item" data-key="key2">🔑</span>
     <span class="inv-item" data-key="key3">🔑</span>
@@ -71,12 +88,12 @@
   </div>
 </section>
 
-<!-- ===== ЭКРАН СКРИМЕРА ===== -->
+<!-- СКРИМЕР -->
 <div id="screamer" class="hidden">
   <div id="screamer-content"></div>
 </div>
 
-<!-- ===== ЭКРАН СМЕРТИ ===== -->
+<!-- СМЕРТЬ -->
 <section id="death-screen" class="screen">
   <h2 class="glitch" data-text="ОНО НАШЛО ТЕБЯ">ОНО НАШЛО ТЕБЯ</h2>
   <p class="whisper" id="death-msg">Ты был слишком медленным.</p>
@@ -85,17 +102,18 @@
   <button id="retry-btn" class="btn" type="button">ПОПРОБОВАТЬ СНОВА</button>
 </section>
 
-<!-- ===== ЭКРАН ПОБЕДЫ ===== -->
+<!-- КОНЕЦ -->
 <section id="end-screen" class="screen">
   <h2 id="end-title">ТЫ ОТКРЫЛ ДВЕРЬ...</h2>
   <p class="whisper" id="end-text">Но дверь была не выходом.</p>
   <p class="whisper small">Теперь ты — часть этого места.</p>
   <p class="whisper tiny" id="end-stats"></p>
   <p class="whisper tiny" id="end-deaths-list"></p>
+  <p class="whisper tiny" id="end-achievements"></p>
   <button id="restart-btn" class="btn" type="button">ЕЩЁ РАЗ?</button>
 </section>
 
-<!-- ===== МЕНЮ ПАУЗЫ ===== -->
+<!-- ПАУЗА -->
 <div id="pause-menu" class="hidden">
   <div class="pause-box">
     <h2>ПАУЗА</h2>
@@ -103,21 +121,53 @@
     <button id="resume-btn" class="btn" type="button">ПРОДОЛЖИТЬ</button>
     <button id="save-btn" class="btn" type="button">💾 СОХРАНИТЬ</button>
     <button id="load-btn" class="btn" type="button">📂 ЗАГРУЗИТЬ</button>
+    <button id="map-btn" class="btn" type="button">🗺️ КАРТА (M)</button>
+    <button id="ach-btn" class="btn" type="button">🏆 АЧИВКИ</button>
     <button id="quit-btn" class="btn" type="button">🚪 ВЫЙТИ</button>
     <p class="hint tiny">ESC — закрыть меню</p>
   </div>
 </div>
 
-<!-- ===== УВЕДОМЛЕНИЯ ===== -->
+<!-- АЧИВКИ -->
+<div id="achievements-modal" class="hidden">
+  <div class="ach-box">
+    <h2>🏆 ДОСТИЖЕНИЯ</h2>
+    <div id="ach-list"></div>
+    <button id="ach-close" class="btn" type="button">ЗАКРЫТЬ</button>
+  </div>
+</div>
+
+<!-- ЧАТ -->
+<div id="friend-chat" class="hidden">
+  <div class="chat-header">
+    <span>🟢 Друг</span>
+    <span id="chat-close" style="cursor:pointer;">✕</span>
+  </div>
+  <div class="chat-body" id="chat-body"></div>
+  <div class="chat-input-wrap">
+    <input id="chat-input" type="text" placeholder="Написать..." maxlength="100">
+    <button id="chat-send" type="button">→</button>
+  </div>
+</div>
+
+<!-- УВЕДОМЛЕНИЯ -->
 <div id="fake-notifications"></div>
 
-<!-- ===== WEBRTC VIDEO (скрытое) ===== -->
+<!-- EVP -->
+<div id="evp-recorder" class="hidden">
+  <div class="evp-icon">🎙️</div>
+  <div class="evp-title">ЗАПИСЬ...</div>
+  <div class="evp-wave" id="evp-wave"></div>
+  <div class="evp-hint">Прислушайся</div>
+</div>
+
+<!-- WEBRTC -->
 <video id="webcam-video" autoplay playsinline muted style="display:none;"></video>
 
-<!-- Скрытый ARG -->
+<!-- ARG -->
 <div id="arg-hint">01101000 01110100 01110100 01110000 01110011 00111010 00101111 00101111 01101001 01101101 01100111 01110101 01110010 00101110 01100011 01101111 01101101 00101111 01100001 00101111 01001011 00110001 01011010 00111000 01011000 01110111 01110001</div>
 
-<!-- ===== РЕАЛЬНЫЕ ЗВУКИ ===== -->
+<!-- ЗВУКИ -->
 <audio id="ambient-audio" loop preload="auto">
   <source src="assets/ambient.mp3" type="audio/mpeg">
 </audio>
@@ -127,10 +177,17 @@
 <audio id="scream-audio-2" preload="auto">
   <source src="assets/scream.mp3" type="audio/mpeg">
 </audio>
+<audio id="whisper-audio" preload="auto">
+  <source src="assets/whisper.mp3" type="audio/mpeg">
+</audio>
 
 <script src="audio.js"></script>
 <script src="screamer.js"></script>
 <script src="scenes.js"></script>
+<script src="achievements.js"></script>
+<script src="minimap.js"></script>
+<script src="multiplayer.js"></script>
+<script src="evp.js"></script>
 <script src="meta.js"></script>
 <script src="script.js"></script>
 </body>
